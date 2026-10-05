@@ -69,3 +69,18 @@
   .publication-links .link-block { display: block; margin: 0; }
   .publication-links .button { width: 100%; margin: 0 !important; }
 }
+.publication-authors a { color: inherit; border-bottom: 1px solid var(--border-color); }
+.publication-authors a:hover { color: var(--primary-color); border-bottom-color: currentColor; }
+/* Get the code */
+.code-block {
+  background: #f6f8fa; border: 1px solid var(--border-color); border-radius: 8px;
+  padding: 0.9rem 1rem; font-size: 0.85rem; line-height: 1.6; overflow-x: auto; text-align: left;
+}
+.code-block code { background: none; color: var(--text-primary); padding: 0; }
+
+/* footer */
+.footer-contact { font-weight: 500; }
+.footer-logos { display: flex; justify-content: center; align-items: center; gap: 2.5rem; flex-wrap: wrap;
+  margin: 1rem 0 1.5rem; }
+.footer-logos img { height: 40px; width: auto; }
+@media screen and (max-width: 480px) { .footer-logos { gap: 1.25rem; } .footer-logos img { height: 30px; } }

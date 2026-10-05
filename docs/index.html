@@ -77,10 +77,10 @@
             <h1 class="title is-1 publication-title">Learning Where to Simulate</h1>
             <p class="subtitle is-4 publication-subtitle">Generative Active Sampling for Online PDE Surrogate Training</p>
             <div class="is-size-5 publication-authors">
-              <span class="author-block">Pierre Cesar,</span>
-              <span class="author-block">Sofya Dymchenko,</span>
-              <span class="author-block">Abhishek Purandare,</span>
-              <span class="author-block">Bruno Raffin</span>
+              <span class="author-block"><a href="https://www.linkedin.com/in/pierre-cesar-4b54a11b9/" target="_blank" rel="noopener">Pierre Cesar</a>,</span>
+              <span class="author-block"><a href="https://svdcvt.github.io/" target="_blank" rel="noopener">Sofya Dymchenko</a>,</span>
+              <span class="author-block"><a href="https://www.linkedin.com/in/abhishek-purandare/" target="_blank" rel="noopener">Abhishek Purandare</a>,</span>
+              <span class="author-block"><a href="https://datamove.imag.fr/bruno.raffin/" target="_blank" rel="noopener">Bruno Raffin</a></span>
             </div>
             <div class="is-size-6 publication-authors">
               <span class="author-block">Univ. Grenoble Alpes, Inria, CNRS, Grenoble INP, LIG (DataMove team)</span>
@@ -91,12 +91,6 @@
                 <a href="https://arxiv.org/abs/2606.09949" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
                   <span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1h7l3 3v11H3V1zm6.5 1H4v12h8V4.5h-2.5V2zM5.5 7h5v1h-5V7zm0 2h5v1h-5V9zm0 2h3.5v1H5.5v-1z"/></svg></span>
                   <span>Paper</span>
-                </a>
-              </span>
-              <span class="link-block">
-                <a href="https://github.com/melissa-sa/ogas" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg></span>
-                  <span>Code</span>
                 </a>
               </span>
               <span class="link-block">
@@ -329,7 +323,27 @@
     </div>
   </section>
   -->
-
+  <!-- Code -->
+  <section class="section hero is-light" id="code">
+    <div class="container is-max-desktop">
+      <div class="page-column content">
+        <h2 class="title is-3 has-text-centered">Get the code</h2>
+        <p class="section-lead">
+          OGAS is built on the <a href="https://gitlab.inria.fr/melissa/melissa" target="_blank" rel="noopener">Melissa</a>
+          online-training framework. On Linux with uv, an MPI library and ZeroMQ:
+        </p>
+        <pre class="code-block"><code>git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
+uv venv --python 3.11 && source .venv/bin/activate
+uv pip install -r frozen_requirements.txt
+uv pip install --no-deps -e . "./melissa[launcher,server,torch]"</code></pre>
+        <p>
+          The <a href="https://github.com/melissa-sa/ogas#quick-start-one-experiment" target="_blank" rel="noopener">README</a>
+          then walks through one experiment: generating its config, running it locally or with Slurm, and following it
+          on Weights &amp; Biases.
+        </p>
+      </div>
+    </div>
+  </section>
   <!-- BibTeX -->
   <section class="section" id="BibTeX">
     <div class="container is-max-desktop content">
@@ -358,6 +372,14 @@
     <div class="columns is-centered">
       <div class="column is-8">
         <div class="content has-text-centered">
+          <p class="footer-contact">
+            Contact: <a href="mailto:pierre.cesar@inria.fr">pierre.cesar@inria.fr</a>
+          </p>
+          <div class="footer-logos">
+            <a href="https://www.inria.fr" target="_blank" rel="noopener"><img src="assets/logos/inria.svg" alt="Inria"></a>
+            <a href="https://www.univ-grenoble-alpes.fr" target="_blank" rel="noopener"><img src="assets/logos/uga.svg" alt="Université Grenoble Alpes"></a>
+            <a href="https://www.liglab.fr" target="_blank" rel="noopener"><img src="assets/logos/lig.svg" alt="LIG"></a>
+          </div>
           <p>
             Supported by the Exa-DoST project of the NumPEx PEPR program (France 2030, ANR-22-EXNU-0004) and the EU Horizon
             programme (EoCoE-III, grant No 101144014). Experiments ran on the EuroHPC supercomputer Leonardo (CINECA).
