@@ -11,7 +11,7 @@ from PIL import Image  # noqa: E402
 
 from gifsave import check_gif, save_gif  # noqa: E402
 
-BG, FG, DIM, GRID = "#0d1117", "#c9d1d9", "#8b949e", "#21262d"
+BG, FG, DIM, GRID = "#ffffff", "#000000", "#555555", "#dddddd"  # paper style: white ground, serif
 GENS_PER_FRAME = 3
 REWIND_FRAMES = 16
 FPS = 12
@@ -19,7 +19,8 @@ HOLD_FIRST, HOLD_LAST = 600, 2200
 
 ap = argparse.ArgumentParser()
 ap.add_argument("out")
-ap.add_argument("panels", nargs="+", help="CSV:XCOL:YCOL:TITLE[:XLABEL[:YLABEL]]")
+ap.add_argument("panels", nargs="+", help="CSV:XCOL:YCOL:TITLE[:XLABEL[:YLABEL]], CSV written by "
+                "scripts/analysis/parameter_generation_evolution.py --export-csv")
 ap.add_argument("--dpi", type=int, default=100, help="resolution (100: 345 px per panel)")
 args = ap.parse_args()
 
@@ -32,12 +33,13 @@ for spec in args.panels:
                        xlabel=labels[0], ylabel=labels[1]))
 g_max = max(int(p["gen"].max()) for p in panels)
 
-cmap = matplotlib.colors.ListedColormap(matplotlib.colormaps["viridis"](np.linspace(0.18, 1.0, 256)))
+cmap = matplotlib.colors.ListedColormap(matplotlib.colormaps["viridis"](np.linspace(0.0, 0.92, 256)))
 norm = matplotlib.colors.Normalize(0, g_max)
 plt.rcParams.update({
-    "font.family": "Helvetica", "font.size": 10, "text.color": FG, "axes.labelcolor": FG,
-    "xtick.color": DIM, "ytick.color": DIM, "axes.edgecolor": GRID, "xtick.labelsize": 8.5,
-    "ytick.labelsize": 8.5,
+    "font.family": "serif", "font.serif": ["Times New Roman", "Times", "Liberation Serif", "STIXGeneral"],
+    "mathtext.fontset": "stix", "font.size": 11, "text.color": FG, "axes.labelcolor": FG,
+    "xtick.color": DIM, "ytick.color": DIM, "axes.edgecolor": "#888888", "xtick.labelsize": 9.5,
+    "ytick.labelsize": 9.5,
 })
 n = len(panels)
 fig = plt.figure(figsize=(3.45 * n + 0.75, 3.9), dpi=args.dpi, facecolor=BG)
@@ -54,7 +56,7 @@ for i, p in enumerate(panels):
     ax.set_axisbelow(True)
     ax.set_title(p["title"], color=FG, fontsize=10.5, loc="left", pad=5)
     p["old"] = ax.scatter([], [], c=[], s=4, alpha=0.5, edgecolors="none", cmap=cmap, norm=norm)
-    p["new"] = ax.scatter([], [], c=[], s=14, edgecolors="white", linewidths=0.5, cmap=cmap, norm=norm)
+    p["new"] = ax.scatter([], [], c=[], s=16, edgecolors="black", linewidths=0.4, cmap=cmap, norm=norm)
 cax = fig.add_axes([right + 0.012, 0.14, 0.009, 0.70])
 cb = fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
 cb.set_label("generation", color=FG, labelpad=3)
@@ -62,8 +64,7 @@ cb.outline.set_edgecolor(GRID)
 cb.ax.tick_params(color=DIM, labelcolor=DIM, labelsize=8.5)
 fig.text(left, 0.935, "OGAS-Loss: parameters sampled per generation (56 concurrent simulations each)",
          color=FG, fontsize=10.5, va="center")
-counter = fig.text(right, 0.935, "", color=DIM, fontsize=10.5, ha="right", va="center",
-                   family="Helvetica Neue")
+counter = fig.text(right, 0.935, "", color=DIM, fontsize=10.5, ha="right", va="center")
 
 
 def draw(g, highlight=True):

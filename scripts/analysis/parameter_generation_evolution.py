@@ -9,7 +9,8 @@ of parameter pairs coloured by generation (--plot-2d). Besides parameter names o
 
 Usage (see scripts/leo/job_ic_param_evolution_root.sh):
   parameter_generation_evolution.py --exp-dir <run>/seed_1 --output DIR --params domain_extent cutoff \
-      [--plot] [--plot-hist] [--plot-hist-ts [--combine]] [--plot-ridge] [--plot-2d --pairs 'a,b;c,d']
+      [--plot] [--plot-hist] [--plot-hist-ts [--combine]] [--plot-ridge] [--plot-2d --pairs 'a,b;c,d'] \
+      [--export-csv samples.csv]
 """
 from __future__ import annotations
 
@@ -410,6 +411,8 @@ def main() -> None:
     parser.add_argument("--arch-name", type=str, default=None, help="Architecture name for titles/filenames")
     parser.add_argument("--skip-missing", action="store_true", help="Skip params that are missing")
     parser.add_argument("--output", type=str, required=True, help="Output directory")
+    parser.add_argument("--export-csv", type=str, help="Also write one row per simulation (generation and --params) "
+                        "to this CSV, the input of docs/tools/render_sampling_gif.py")
     args = parser.parse_args()
 
     output_dir = Path(args.output).expanduser().resolve()
@@ -455,6 +458,12 @@ def main() -> None:
             for row in rows:
                 f.write(",".join(str(row.get(h, "")) for h in headers) + "\n")
     print(f"Saved: {out_csv}")
+    if args.export_csv:
+        cols = {name: layout.values(np.asarray(params), name) for name in args.params}
+        table = np.column_stack([np.arange(params.shape[0]) // gen_size] + list(cols.values()))
+        np.savetxt(args.export_csv, table, delimiter=",", header=",".join(["generation", *cols]), comments="",
+                   fmt=["%d"] + ["%.6g"] * len(cols))
+        print(f"Saved: {args.export_csv}")
 
     if sns is not None and (args.plot or args.plot_hist or args.plot_hist_ts or args.plot_ridge or args.plot_2d):
         sns.set_theme(style="whitegrid", context="paper")
