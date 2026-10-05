@@ -20,6 +20,8 @@ Neural PDE surrogates trained on uniformly sampled simulations are accurate on a
 in the hardest regimes. In online training, simulations stream to the surrogate while it trains, so the next ones
 can target those regimes. **OGAS** does this with a conditional diffusion model trained alongside the surrogate: it
 learns which solver parameters are currently hard and generates the next ones, mixed with uniform draws.
+<p align="center"><img src="docs/assets/ogas_pipeline.gif" width="800" alt="OGAS online loop"></p>
+<p align="center"><img src="docs/assets/figures/results_bars.svg" width="700" alt="Error ratio to Uniform per PDE and metric"></p>
 
 On 3 PDEs × 3 architectures (189 runs of 10,000 simulations), at the same simulation budget as uniform sampling:
 
