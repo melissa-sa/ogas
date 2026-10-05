@@ -1,3 +1,10 @@
+"""Step-by-step animation of the OGAS online loop (docs/assets/ogas_pipeline.gif).
+
+    python render_pipeline_gif.py ../assets/ogas_pipeline.gif [--stills DIR]
+
+Solver thumbnails come from ../assets/ks_trajectories.gif; the parameter space and its difficulty landscape
+are illustrative.
+"""
 import argparse
 import io
 import os
@@ -7,142 +14,89 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import FancyBboxPatch, Rectangle  # noqa: E402
+from matplotlib.patches import Circle, FancyBboxPatch, Rectangle  # noqa: E402
 from PIL import Image  # noqa: E402
 
 from gifsave import check_gif, save_gif  # noqa: E402
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 ap = argparse.ArgumentParser()
 ap.add_argument("out")
-ap.add_argument("csv")
-ap.add_argument("npz")
-ap.add_argument("--stills", help="also write a few PNG stills to this directory")
+ap.add_argument("--stills", help="also write one PNG per step to this directory")
 args = ap.parse_args()
 
-BG, PANEL, INNER, BORDER, FAINT = "#0d1117", "#161b22", "#10151d", "#30363d", "#484f58"
-FG, DIM, HL = "#c9d1d9", "#8b949e", "#e6edf3"
-RUN, FIN, WAIT = "#58a6ff", "#f85149", "#6e7681"
-GEN, UNI, SIG, TEAL = "#f0883e", "#3fb950", "#bc8cff", "#39c5cf"
-W, H, FPS = 1000, 392, 12
-N_CLIENTS, N_BUDGET, G_MAX, STAGED = 56, 10_000, 178, 112
-RAMP = np.linspace(0.0, 0.7, 4)
-T_SIM = 4.5
-T_WARM, T_NORMAL, T_FF, T_HOLD = 4.5, 13.5, 18.5, 20.0
-FADE_S = 0.5
-WATERMARK = 1500 / 4163
-N_REV = 5
-rng = np.random.default_rng(3)
+# same look as the paper figures: white ground, Times-like serif, matplotlib tab colors, draw.io accents
+BG, PANEL, INNER, BORDER, FAINT = "#ffffff", "#ffffff", "#f7f7f7", "#333333", "#9a9a9a"
+FG, DIM = "#000000", "#555555"
+UNI, GEN, HOT = "#1f77b4", "#ff7f0e", "#9467bd"           # uniform draw, OGAS draw, difficulty
+OGAS_BLUE, STEP_FILL, STEP_EDGE = "#1a7fe0", "#e1d5e7", "#9673a6"
+NODE_FILL, NODE_EDGE, EDGE, PULSE = "#dae8fc", "#6c8ebf", "#c3d3ea", "#3f6fb5"
+plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "Liberation Serif", "STIXGeneral"],
+                     "mathtext.fontset": "stix", "font.size": 12, "text.color": FG})
 
-plt.rcParams.update({"font.family": "Helvetica", "font.size": 10, "text.color": FG,
-                     "mathtext.fontset": "custom", "mathtext.rm": "Helvetica",
-                     "mathtext.it": "Helvetica:italic", "mathtext.bf": "Helvetica:bold"})
+W, H, FPS = 1000, 450, 12
+STEPS = [
+    ("Solvers run simulations from uniform parameters",
+     "each point λ is one simulation: a physical coefficient and an initial condition"),
+    ("They stream every time step to the surrogate",
+     "the surrogate trains on the fly; nothing is stored on disk"),
+    ("The training loss shows which simulations are hard",
+     "a bright halo marks a simulation that the surrogate predicts badly"),
+    ("A diffusion model learns where the loss is high",
+     "it trains next to the surrogate, on (parameters, loss) pairs"),
+    ("It generates the next parameters in hard regions",
+     "70 % come from the diffusion model, 30 % stay uniform to cover the whole space"),
+    ("Everything runs in parallel, in a closed loop",
+     "same simulation budget, much lower worst-case error"),
+]
+T = [0.0, 4.4, 8.8, 13.2, 17.6, 22.0, 29.0]
+ACTIVE = [{"A", "B"}, {"B", "C"}, {"C", "A"}, {"C", "D"}, {"D", "A"}, {"A", "B", "C", "D"}]
+FADE_S = 0.6
 
-n_frames = int(round(T_HOLD * FPS))
-times = np.arange(n_frames) / FPS
-rate = np.select([times < T_WARM, times < T_NORMAL, times < T_FF],
-                 [2.2, 1.0, np.minimum(1.0 + 3.0 * (times - T_NORMAL) / 1.5, 4.0)], 0.0)
-is_ff = (times >= T_NORMAL) & (times < T_FF)
+PANELS = {"A": (40, 118, 280, 358), "B": (340, 118, 510, 358), "C": (570, 118, 740, 358), "D": (800, 118, 970, 358)}
+TITLES = {"A": ("Parameter space $\\Lambda$", ""), "B": ("Solvers $S(\\lambda)$", " (CPU)"),
+          "C": ("Deep Surrogate", " (GPU)"), "D": ("OGAS", " (GPU)")}
+AI = (50, 128, 270, 348)          # unit square of the parameter space inside A
+DM = (825, 150, 945, 270)         # its twin inside D
+MID = 238                         # height of the arrows between panels
+LANES_Y = [146 + 46 * i for i in range(5)]
+TH_X, TH = 352, 34                # lane thumbnail
+BAR_X0, BAR_X1 = 396, 498         # lane progress bar
+NET_X, NET_N = [604, 637, 670, 703], [3, 5, 5, 3]
+RET_Y, RET_X_A, RET_X_D = 392, 240, 885
 
-
-def share(g):
-    return 0.0 if g <= 0 else float(RAMP[min(g - 1, len(RAMP) - 1)])
+rng = np.random.default_rng(5)
 
 
 def ease(u):
-    u = np.clip(u, 0, 1)
+    u = np.clip(u, 0.0, 1.0)
     return u * u * (3 - 2 * u)
 
 
-def reflect(x):
-    x = np.mod(x, 2.0)
-    return 1.0 - np.abs(x - 1.0)
+def hard(x, y):
+    """Illustrative difficulty landscape on the unit square, in [0, 1]."""
+    a = 0.7
+    u, v = (x - 0.70) * np.cos(a) + (y - 0.66) * np.sin(a), -(x - 0.70) * np.sin(a) + (y - 0.66) * np.cos(a)
+    g = np.exp(-u ** 2 / (2 * 0.16 ** 2) - v ** 2 / (2 * 0.075 ** 2))
+    g += 0.6 * np.exp(-((x - 0.24) ** 2 + (y - 0.27) ** 2) / (2 * 0.065 ** 2))
+    return np.clip(g, 0.0, 1.0)
 
 
-run = np.genfromtxt(args.csv, delimiter=",", names=True)
-run_gen = run["generation"].astype(int)
-LX = (run["domain_extent"] - 10) / 120
-LY = (run["cutoff"] - 2) / 6
-ks = np.load(args.npz)
-thumbs = []
-for i in ks["idx"]:
-    tr = ks[f"sim{int(i)}"][:, 0].astype(np.float32)
-    for t in range(4, tr.shape[0], 3):
-        f = np.asarray(Image.fromarray(tr[t, :96, :96], mode="F").resize((40, 40), Image.Resampling.BILINEAR))
-        thumbs.append((f - f.mean()) / (f.std() + 1e-6))
+def sample_hard(n):
+    out = []
+    while len(out) < n:
+        x, y = rng.random(2)
+        if rng.random() < hard(x, y) ** 3:
+            out.append((x, y))
+    return np.array(out)
 
 
-def dense_subset(g, share_):
-    idx = np.flatnonzero(run_gen == min(g, G_MAX))
-    nb = int(round(share_ * len(idx)))
-    if nb == 0:
-        return np.empty((0, 2))
-    xy = np.c_[LX[idx], LY[idx]]
-    dens = np.exp(-((xy[:, None] - xy[None]) ** 2).sum(-1) / (2 * 0.08 ** 2)).sum(1)
-    return xy[np.argsort(-dens)[:nb]]
+def to_a(x, y):
+    return AI[0] + x * (AI[2] - AI[0]), AI[3] - y * (AI[3] - AI[1])
 
 
-speed = rng.uniform(0.75, 1.25, N_CLIENTS) / T_SIM
-prog = rng.uniform(0.0, 0.3, N_CLIENTS)
-src = np.zeros(N_CLIENTS, int)
-queue = [0] * STAGED
-finished = []
-n_launched, ff_n0, since, n_res = N_CLIENTS, None, 0, 0
-pending = []
-resamplings = []
-cl, n_disp = [], np.zeros(n_frames, int)
-last_new = np.full(N_CLIENTS, -9.0)
-for k, t in enumerate(times):
-    prog += speed * rate[k] / FPS
-    if is_ff[k] or t >= T_FF:
-        ff_n0 = n_launched if ff_n0 is None else ff_n0
-        u = min((t - T_NORMAL) / (T_FF - T_NORMAL), 1.0)
-        n_disp[k] = int(round(ff_n0 + (N_BUDGET - ff_n0) * (1 - (1 - u) ** 2)))
-    for p in [p for p in pending if p[0] <= t]:
-        pending.remove(p)
-        queue = list(p[1])
-    for i in np.flatnonzero(prog >= 1.0):
-        prog[i] -= 1.0
-        finished.append(t)
-        src[i] = queue.pop(0) if queue else 0
-        last_new[i] = t
-        n_launched += 1
-        since += 1
-        if since >= N_CLIENTS and t < T_FF:
-            since = 0
-            n_res += 1
-            g = n_res if not is_ff[k] else max(int(n_disp[k]) // N_CLIENTS, n_res)
-            fast = bool(is_ff[k])
-            s_dur, lead = (0.3, 0.5) if fast else (1.8, 1.0)
-            sh = share(n_res)
-            srcs = list((rng.random(STAGED) < sh).astype(int))
-            resamplings.append(dict(t0=t, t1=t + s_dur, t2=t + s_dur + lead, g=g, share=sh, fast=fast,
-                                    pts=dense_subset(g, sh), srcs=srcs))
-            pending.append((t + s_dur + lead, srcs))
-    if not (is_ff[k] or t >= T_FF):
-        n_disp[k] = n_launched
-    cl.append((prog.copy(), src.copy(), last_new.copy(), list(queue), [f for f in finished if t - f < 6]))
-n_res_at = np.array([sum(r_["t0"] <= t for r_ in resamplings) for t in times])
-gen_disp = np.where(is_ff | (times >= T_FF), np.maximum(n_res_at, (n_disp - 1) // N_CLIENTS), n_res_at)
-gen_disp = np.minimum(gen_disp, G_MAX)
-for j, r_ in enumerate(resamplings):
-    r_["t_end"] = resamplings[j + 1]["t1"] if j + 1 < len(resamplings) else np.inf
-
-SO, RS, DS, OG = (14, 44, 174, 330), (284, 44, 364, 330), (426, 44, 726, 330), (646, 44, 986, 330)
-CW, CH, CG, N_SHOW = 54, 16, 4, 10
-cell_xy = [(64, 88 + i * (CH + CG)) for i in range(N_SHOW)]
-CHIP_W, CHIP_H, CHIP_DY, N_CHIPS = 36, 8, 12, 17
-FIN_X, WAIT_X = 18, 128
-SW, SH_, SG, S_COLS, S_ROWS = 26, 15, 5, 1, 11
-slot_xy = [((RS[0] + RS[2] - SW) / 2, 76 + s * (SH_ + SG)) for s in range(S_ROWS)]
-N_SLOTS = len(slot_xy)
-SUR_X, SUR_N, SUR_Y = [540, 572, 604, 636], [3, 5, 5, 3], 176
-IN_X, OUT_X, TH = 452, 672, 40
-BN, BX0, BY0, BW, BH = 10, 664, 92, 10, 22
-KP = (852, 90, 970, 122)
-DD_X, DD_N, DD_Y = [772, 796, 820, 844], [3, 5, 5, 2], 196
-PG = (870, 150, 976, 256)
-UB = (690, 246, 716, 272)
-MIX = (815, 300)
+def to_d(x, y):
+    return DM[0] + x * (DM[2] - DM[0]), DM[3] - y * (DM[3] - DM[1])
 
 
 class Path:
@@ -156,302 +110,206 @@ class Path:
         return np.array([np.interp(u, self.s, self.p[:, 0]), np.interp(u, self.s, self.p[:, 1])])
 
 
-def bezier(p0, p1, p2, n=20):
+def bezier(p0, p1, p2, n=24):
     s = np.linspace(0, 1, n)[:, None]
     return (1 - s) ** 2 * np.array(p0) + 2 * (1 - s) * s * np.array(p1) + s ** 2 * np.array(p2)
 
 
-def pg_xy(xy):
-    xy = np.atleast_2d(xy)
-    return np.c_[PG[0] + 4 + xy[:, 0] * (PG[2] - PG[0] - 8), PG[3] - 4 - xy[:, 1] * (PG[3] - PG[1] - 8)]
+# solver thumbnails: the three Kuramoto-Sivashinsky domain sizes of ks_trajectories.gif
+gif = Image.open(os.path.join(HERE, "..", "assets", "ks_trajectories.gif"))
+canvas, thumbs = None, [[], [], []]
+for i in range(gif.n_frames):
+    gif.seek(i)
+    fr = gif.convert("RGBA")
+    canvas = fr if canvas is None else Image.alpha_composite(canvas, fr)
+    for j, x0 in enumerate((14, 218, 422)):
+        thumbs[j].append(np.asarray(canvas.crop((x0, 26, x0 + 192, 218)).convert("RGB").resize((TH, TH), Image.LANCZOS)))
+
+# ---------------------------------------------------------------- simulate the loop, frame by frame
+n_frames = int(round(T[-1] * FPS))
+times = np.arange(n_frames) / FPS
+step_of = np.searchsorted(T, times, side="right") - 1
+
+dots = []          # parameter-space points: x, y, kind, t_in (visible in A), t_score, d
+queue, lanes = [], [dict(dot=None, t0=0.0, dur=1.0) for _ in LANES_Y]
+pending = []       # (time, x, y, kind): generated parameters still travelling back to the parameter space
+lane_state = []    # per frame and lane: (progress, thumbnail, kind) or None
+caught_up = False
+packets = []       # moving glyphs: kind, t0, t1, path, color, extra
+batches = []       # OGAS generations: t0, targets, starts
+pulses, outs = [], []
+spawn_t = [0.35 + 0.27 * i for i in range(12)]
+next_spawn = 0.0
+gen_t = [T[4] + 0.4, T[5] + 0.3, T[5] + 2.2, T[5] + 4.1]
 
 
-def net_nodes(xs, ns, yc, dy):
-    return [[(x, yc + (j - (n - 1) / 2) * dy) for j in range(n)] for x, n in zip(xs, ns)]
+def add_dot(x, y, kind, t):
+    dots.append(dict(x=x, y=y, kind=kind, t_in=t, t_score=None, d=0.0))
+    queue.append(len(dots) - 1)
 
 
-SUR_NODES = net_nodes(SUR_X, SUR_N, SUR_Y, 16)
-DD_NODES = net_nodes(DD_X, DD_N, DD_Y, 12)
-
-from matplotlib.transforms import Affine2D  # noqa: E402
-
-H, Y0 = 404, 44
-PLACE = {"OG": (14, 1.08, False), "SO": (397, 1.0, True), "RS": (573, 1.0, False), "DS": (669, 1.0, False)}
-RECT = {"OG": OG, "SO": SO, "RS": RS, "DS": DS}
-
-
-def M(block, x, y=None):
-    xy = np.asarray(x, float) if y is None else np.array([x, y], float)
-    X, s, mirror = PLACE[block]
-    x0 = RECT[block][2] if mirror else RECT[block][0]
-    out = np.array(xy, float)
-    out[..., 0] = X + (-(xy[..., 0] - x0) if mirror else (xy[..., 0] - x0)) * s
-    out[..., 1] = Y0 + (xy[..., 1] - SO[1]) * s
-    return out
+def score(i, t):
+    d = dots[i]
+    improve = 1.0 - 0.45 * float(ease((t - T[5]) / (T[6] - T[5])))
+    d["d"] = float(np.clip(hard(d["x"], d["y"]) * improve + rng.normal(0, 0.06), 0.03, 1.0))
+    d["t_score"] = t + 0.25
+    outs.append(t + 0.25)
+    packets.append(dict(kind="bar", t0=t + 0.25, t1=t + 0.95, path=Path([(712, MID), (DM[0] - 6, MID)]),
+                        color=HOT, extra=d["d"]))
 
 
-def block_affine(block):
-    X, s, mirror = PLACE[block]
-    x0 = RECT[block][2] if mirror else RECT[block][0]
-    return Affine2D().translate(-x0, -SO[1]).scale(-s if mirror else s, s).translate(X, Y0)
-
-
-Y_TOP, Y_BOT = 33, 372
-P_TRAIN = Path(M("OG", [(700, 126), (700, DD_NODES[0][0][1]), (DD_X[0] - 5, DD_NODES[0][0][1])]))
-P_EPS = Path(M("OG", [(KP[0] + 20, KP[3] + 14), (DD_X[1], DD_NODES[1][0][1] - 8)]))
-SIG0 = M("DS", OUT_X + TH / 2, SUR_Y - TH / 2 - 6)
-B_IN = M("OG", BX0 - 3, BY0 + BH / 2)
-P_SIG = Path([SIG0, (SIG0[0], Y_TOP), (B_IN[0] - 9, Y_TOP), (B_IN[0] - 9, B_IN[1]), (B_IN[0], B_IN[1])])
-P_BATCH = Path([M("RS", RS[2] - 4, SUR_Y), M("DS", IN_X - 3, SUR_Y)])
-MIX_C = M("OG", *MIX)
-WAIT_IN = M("SO", WAIT_X + CHIP_W / 2, SO[3])
-P_RET = [(MIX_C[0], MIX_C[1] + 11), (MIX_C[0], Y_BOT), (WAIT_IN[0], Y_BOT), (WAIT_IN[0], WAIT_IN[1] + 1)]
-
-slot_col = np.full(N_SLOTS, -1)
-slot_seen = np.zeros(N_SLOTS, bool)
-slot_res = np.zeros(N_SLOTS, bool)
-slot_evict = np.full(N_SLOTS, -9.0)
-slot_read = np.full(N_SLOTS, -9.0)
-inflight, arrivals_batch, arrivals_bar = [], [], []
-state_packets, batch_packets, bar_packets, minibatches = [], [], [], []
-sur_w = rng.normal(0, 0.6, sum(a * b for a, b in zip(SUR_N[:-1], SUR_N[1:])))
-dd_w = rng.normal(0, 0.6, sum(a * b for a, b in zip(DD_N[:-1], DD_N[1:])))
-sur_hist, dd_hist, sur_up, dd_up, dd_pending = [], [], [], [], []
-hist, hist_flash, hist_states = [], np.full(BN, -9.0), []
-res_states, thumb_hist = [], []
-t_next_write = t_next_batch = t_next_train = 0.0
-thumb_i = 0
 for k, t in enumerate(times):
-    r = rate[k]
-    if r > 0 and t >= t_next_write:
-        t_next_write = t + 1.0 / (7.0 * min(r, 2.0)) * rng.uniform(0.8, 1.2)
-        empty = np.flatnonzero((slot_col < 0) & ~slot_res)
-        seen = np.flatnonzero((slot_col >= 0) & slot_seen & ~slot_res)
-        s = empty[0] if len(empty) else (rng.choice(seen) if len(seen) else None)
-        if s is not None:
-            i = int(rng.integers(N_SHOW))
-            col = int(cl[k][1][i])
-            slot_res[s] = True
-            src_xy = M("SO", cell_xy[i][0], cell_xy[i][1] + CH / 2)
-            dst = M("RS", slot_xy[s][0] + SW / 2, slot_xy[s][1] + SH_ / 2)
-            ctrl = ((src_xy[0] + dst[0]) / 2, src_xy[1])
-            state_packets.append((t, t + 0.6, Path(bezier(src_xy, ctrl, dst)), col))
-            inflight.append((t + 0.6, s, col))
-    for a in [a for a in inflight if a[0] <= t]:
-        inflight.remove(a)
-        _, s, col = a
-        if slot_col[s] >= 0:
-            slot_evict[s] = t
-        slot_col[s], slot_seen[s], slot_res[s] = col, False, False
-    filled = np.flatnonzero(slot_col >= 0)
-    if r > 0 and len(filled) >= WATERMARK * N_SLOTS and t >= t_next_batch:
-        t_next_batch = t + 1.0 / (3.5 * min(r, 2.0))
-        pick = rng.choice(filled, min(4, len(filled)), replace=False)
-        slot_read[pick] = t
-        slot_seen[pick] = True
-        batch_packets.append((t, t + 0.35, [int(slot_col[s]) for s in pick]))
-        arrivals_batch.append(t + 0.35)
-    for a in [a for a in arrivals_batch if a <= t]:
-        arrivals_batch.remove(a)
-        sur_w += rng.normal(0, 0.35, sur_w.shape)
-        np.clip(sur_w, -1.2, 1.2, out=sur_w)
-        sur_up.append(t)
-        thumb_i = int(rng.integers(1, len(thumbs)))
-        eps = float(np.clip(rng.gamma(2.0, 0.9) - 0.8, 0.05, 5.0))
-        bar_packets.append((t + 0.15, t + 0.85, eps))
-        arrivals_bar.append((t + 0.85, eps))
-    for a in [a for a in arrivals_bar if a[0] <= t]:
-        arrivals_bar.remove(a)
-        hist.append(a[1])
-        hist[:] = hist[-BN:]
-        hist_flash[:] = np.roll(hist_flash, -1)
-        hist_flash[-1] = t
-    sampling = any(r_["t0"] <= t < r_["t1"] for r_ in resamplings)
-    if r > 0 and not sampling and len(hist) >= 3 and t >= t_next_train:
-        t_next_train = t + 0.7 / min(max(r, 1.0), 2.0)
-        sel = rng.choice(len(hist), min(4, len(hist)), replace=False) + (BN - len(hist))
-        hist_flash[sel] = np.maximum(hist_flash[sel], t - 0.01)
-        minibatches.append((t, [BX0 + j * (BW + 2) + BW / 2 for j in sel], rng.normal(0, 1, (4, 2))))
-        dd_pending.append(t + 0.6)
-    for a in [a for a in dd_pending if a <= t]:
-        dd_pending.remove(a)
-        dd_w += rng.normal(0, 0.35, dd_w.shape)
-        np.clip(dd_w, -1.2, 1.2, out=dd_w)
-        dd_up.append(t)
-    res_states.append((slot_col.copy(), slot_seen.copy(), slot_evict.copy(), slot_read.copy()))
-    sur_hist.append(sur_w.copy())
-    dd_hist.append(dd_w.copy())
-    thumb_hist.append(thumb_i)
-    hist_states.append((list(hist), hist_flash.copy()))
+    s = step_of[k]
+    while spawn_t and spawn_t[0] <= t:
+        spawn_t.pop(0)
+        add_dot(*rng.random(2), "uni", t)
+    if T[1] <= t < T[4] + 2.4 and len(queue) < 2 and t >= next_spawn:
+        add_dot(*rng.random(2), "uni", t)
+        next_spawn = t + 0.5
+    while gen_t and gen_t[0] <= t:
+        t0 = gen_t.pop(0)
+        n = 7 if t0 < T[5] else 5
+        targets = sample_hard(n)
+        batches.append(dict(t0=t0, targets=targets, starts=rng.random((n, 2))))
+        pending += [(t0 + 2.45 + 0.06 * j, x, y, "gen") for j, (x, y) in enumerate(targets)]
+        pending += [(t0 + 2.45, x, y, "uni") for x, y in rng.random((3 if n == 7 else 2, 2))]
+        pending.sort()
+    while pending and pending[0][0] <= t:
+        _, x, y, kind = pending.pop(0)
+        add_dot(x, y, kind, t)
+    if s >= 2 and not caught_up:
+        caught_up = True
+        done = [i for i, d in enumerate(dots) if d.get("t_done") is not None]
+        for j, i in enumerate(done):
+            score(i, t + 0.12 * j)
+    for li, ln in enumerate(lanes):
+        if ln["dot"] is not None and t >= ln["t0"] + ln["dur"]:
+            i = ln["dot"]
+            dots[i]["t_done"] = t
+            ln["dot"] = None
+            if s >= 2:
+                score(i, t)
+        if ln["dot"] is None and ln.get("t_free", 0) <= t and queue:
+            i = queue.pop(0)
+            d = dots[i]
+            p0 = to_a(d["x"], d["y"])
+            p1 = (TH_X - 4, LANES_Y[li])
+            packets.append(dict(kind="dot", t0=t, t1=t + 0.5, path=Path(bezier(p0, (300, p0[1]), p1)),
+                                color=UNI if d["kind"] == "uni" else GEN, extra=None))
+            ln.update(dot=i, t0=t + 0.5, dur=float(rng.uniform(2.3, 3.1)), panel=min(int(d["x"] * 3), 2),
+                      next_emit=t + 0.9, t_free=t + 0.5)
+        if ln["dot"] is not None and s >= 1 and t >= ln["t0"] and t >= ln["next_emit"]:
+            ln["next_emit"] = t + 0.45
+            y0 = LANES_Y[li]
+            packets.append(dict(kind="sq", t0=t, t1=t + 0.55, path=Path(bezier((BAR_X1 + 4, y0), (540, y0), (NET_X[0] - 8, MID))),
+                                color=UNI if dots[ln["dot"]]["kind"] == "uni" else GEN, extra=None))
+            pulses.append(t + 0.55)
+    lane_state.append([None if ln["dot"] is None or t < ln["t0"] else
+                       (min((t - ln["t0"]) / ln["dur"], 1.0), ln["panel"], dots[ln["dot"]]["kind"]) for ln in lanes])
 
+# ---------------------------------------------------------------- static drawing
 fig = plt.figure(figsize=(W / 100, H / 100), dpi=100, facecolor=BG)
 ax = fig.add_axes([0, 0, 1, 1], facecolor=BG)
 ax.set_xlim(0, W)
 ax.set_ylim(H, 0)
 ax.axis("off")
-TF = {b: block_affine(b) + ax.transData for b in PLACE}
-TXT = {"OG": 1.04, "SO": 1.0, "RS": 1.0, "DS": 1.0}
 
 
-def text(x, y, s, size=10, color=FG, b=None, **kw):
-    kw.setdefault("va", "center")
-    if b is not None:
-        kw["transform"] = TF[b]
-        size *= TXT[b]
-    return ax.text(x, y, s, fontsize=size, color=color, **kw)
-
-
-def rbox(rect, fc=PANEL, ec=BORDER, r=6, lw=1.0, ls="-", z=0, b=None):
+def rbox(rect, fc=PANEL, ec=BORDER, r=8, lw=1.0, z=0, **kw):
     x0, y0, x1, y1 = rect
-    p = FancyBboxPatch((x0, y0), x1 - x0, y1 - y0, boxstyle=f"round,pad=0,rounding_size={r}", fc=fc, ec=ec,
-                       lw=lw, ls=ls, zorder=z, transform=TF[b] if b else ax.transData)
+    p = FancyBboxPatch((x0, y0), x1 - x0, y1 - y0, boxstyle=f"round,pad=0,rounding_size={r}", fc=fc, ec=ec, lw=lw,
+                       zorder=z, **kw)
     ax.add_patch(p)
     return p
 
 
-def line(pts, color=FAINT, lw=1.1, head=False, z=1, ls="-", b=None):
+def arrow(pts, color=FAINT, lw=1.3, z=1):
     pts = np.asarray(pts, float)
-    if b is not None:
-        pts = M(b, pts)
-    ax.plot(pts[:, 0], pts[:, 1], color=color, lw=lw, zorder=z, ls=ls, solid_capstyle="round")
-    if head:
-        d = (pts[-1] - pts[-2]) / np.linalg.norm(pts[-1] - pts[-2])
-        n = np.array([-d[1], d[0]])
-        ax.add_patch(plt.Polygon([pts[-1], pts[-1] - 6 * d + 3 * n, pts[-1] - 6 * d - 3 * n], color=color,
-                                 zorder=z))
+    ax.plot(pts[:, 0], pts[:, 1], color=color, lw=lw, zorder=z, solid_capstyle="round", solid_joinstyle="round")
+    d = (pts[-1] - pts[-2]) / np.linalg.norm(pts[-1] - pts[-2])
+    n = np.array([-d[1], d[0]])
+    ax.add_patch(plt.Polygon([pts[-1], pts[-1] - 8 * d + 4 * n, pts[-1] - 8 * d - 4 * n], color=color, zorder=z))
 
 
-def draw_net(nodes, b):
-    arts = []
-    for la, lb in zip(nodes[:-1], nodes[1:]):
-        for a in la:
-            for c in lb:
-                arts.append(ax.plot([a[0], c[0]], [a[1], c[1]], lw=0.8, color=FAINT, zorder=2, transform=TF[b])[0])
-    circ = [[ax.add_patch(plt.Circle((x, y), 3.2, fc=PANEL, ec=DIM, lw=0.9, zorder=3, transform=TF[b]))
-             for (x, y) in layer] for layer in nodes]
-    return arts, circ
+for key, rect in PANELS.items():
+    if key == "D":  # the OGAS box of the paper's Figure 1
+        rbox(rect, ec=OGAS_BLUE, lw=1.6, ls=(0, (4, 3)))
+    else:
+        rbox(rect, lw=1.1)
+    name, hw = TITLES[key]
+    t_ = ax.text(rect[0] + 2, rect[1] - 13, name, fontsize=14, weight="bold", va="center", color=FG)
+    fig.canvas.draw()
+    ax.text(rect[0] + 2 + t_.get_window_extent().width, rect[1] - 13, hw, fontsize=13, va="center", color=DIM)
+# parameter space
+rbox(AI, fc=INNER, ec="none", r=4, z=1)
+ax.text(AI[0], PANELS["A"][3] + 13, "physical coefficient →", fontsize=10.5, color=DIM, va="center")
+ax.text(PANELS["A"][0] - 13, AI[3], "initial condition →", fontsize=10.5, color=DIM, va="bottom", ha="center",
+        rotation=90)
+# solvers
+for y in LANES_Y:
+    rbox((TH_X, y - TH / 2, TH_X + TH, y + TH / 2), fc=INNER, ec=FAINT, r=3, lw=0.8, z=2)
+    rbox((BAR_X0, y - 4, BAR_X1, y + 4), fc="#eeeeee", ec="none", r=4, z=2)
+# surrogate network
+nodes = [[(x, MID + (j - (n - 1) / 2) * 24) for j in range(n)] for x, n in zip(NET_X, NET_N)]
+edges = []
+for la, lb in zip(nodes[:-1], nodes[1:]):
+    for a in la:
+        for b in lb:
+            edges.append(ax.plot([a[0], b[0]], [a[1], b[1]], lw=0.9, color=EDGE, zorder=2)[0])
+node_art = [ax.add_patch(Circle(p, 5, fc=NODE_FILL, ec=NODE_EDGE, lw=1.1, zorder=3)) for layer in nodes for p in layer]
+ax.text((PANELS["C"][0] + PANELS["C"][2]) / 2, PANELS["C"][3] - 22, "learns to predict the next step",
+        fontsize=10.5, color=DIM, ha="center", va="center")
+# generator
+rbox(DM, fc=INNER, ec="none", r=4, z=1)
+ax.text((DM[0] + DM[2]) / 2, DM[3] + 22, "diffusion model:", fontsize=10.5, color=DIM, ha="center", va="center")
+ax.text((DM[0] + DM[2]) / 2, DM[3] + 40, "where is the loss high?", fontsize=10.5, color=DIM, ha="center",
+        va="center")
+gx, gy = np.meshgrid(np.linspace(0, 1, 96), np.linspace(1, 0, 96))
+field = hard(gx, gy)
+field = field / field.max()
+glow_rgba = np.zeros((96, 96, 4))
+glow_rgba[..., :3] = matplotlib.colors.to_rgb(HOT)
+glow_rgba[..., 3] = 0.75 * field ** 1.4
+glow = ax.imshow(glow_rgba, extent=(DM[0], DM[2], DM[3], DM[1]), zorder=2, interpolation="bilinear", alpha=0)
+# arrows between panels and the return path
+arrow([(PANELS["A"][2] + 6, MID), (PANELS["B"][0] - 6, MID)])
+arrow([(PANELS["B"][2] + 6, MID), (PANELS["C"][0] - 6, MID)])
+arrow([(PANELS["C"][2] + 6, MID), (PANELS["D"][0] - 6, MID)])
+ax.text((PANELS["B"][2] + PANELS["C"][0]) / 2, MID - 14, "data", fontsize=10.5, color=DIM, ha="center")
+ax.text((PANELS["C"][2] + PANELS["D"][0]) / 2, MID - 14, "loss", fontsize=10.5, color=DIM, ha="center")
+RET = [(RET_X_D, PANELS["D"][3] + 4), (RET_X_D, RET_Y), (RET_X_A, RET_Y), (RET_X_A, PANELS["A"][3] + 6)]
+arrow(RET)
+ax.text((RET_X_A + RET_X_D) / 2, RET_Y - 9, "next parameters", fontsize=10.5, color=DIM, ha="center")
+# legend
+lx = 40
+for kind, label in (("uni", "uniform draw"), ("gen", "generated by OGAS"), ("hot", "hard simulation (high loss)")):
+    if kind == "hot":
+        ax.add_patch(Circle((lx + 5, 428), 10, fc=HOT, ec="none", alpha=0.45, zorder=2))
+        ax.add_patch(Circle((lx + 5, 428), 4.5, fc=UNI, ec=BG, lw=1.2, zorder=3))
+    else:
+        ax.add_patch(Circle((lx + 5, 428), 4.5, fc=UNI if kind == "uni" else GEN, ec=BG, lw=1.2, zorder=3))
+    t = ax.text(lx + 18, 428, label, fontsize=11, color=DIM, va="center")
+    fig.canvas.draw()
+    lx += 18 + t.get_window_extent().width + 34
 
-
-def thumb_stack(x0, yc, b):
-    for j in (2, 1):
-        rbox((x0 + 3 * j, yc - TH / 2 - 3 * j, x0 + TH + 3 * j, yc + TH / 2 - 3 * j), fc=INNER, r=2, z=2, b=b)
-    rbox((x0, yc - TH / 2, x0 + TH, yc + TH / 2), fc=INNER, r=2, z=2, b=b)
-    return ax.imshow(np.zeros((40, 40)), extent=(x0, x0 + TH, yc + TH / 2, yc - TH / 2), cmap="viridis",
-                     vmin=-2.2, vmax=2.2, zorder=3, interpolation="nearest", transform=TF[b])
-
-
-text(14, 16, "OGAS in the Melissa online loop", size=13, weight="bold", color=HL)
-hdr = text(986, 16, "", size=10.5, ha="right")
-ff_tag = text(730, 16, "fast-forward ▸▸", size=10, color=DIM, ha="right", alpha=0, family="DejaVu Sans")
-
-rbox(OG, ls=(0, (4, 3)), ec="#388bfd", lw=1.3, b="OG")
-text(656, 57, "OGAS", size=12, weight="bold", b="OG")
-hd_train = text(724, 76, "Training", size=9, color=DIM, ha="center", style="italic", b="OG")
-hd_samp = text(911, 76, "Resampling", size=9, color=DIM, ha="center", style="italic", b="OG")
-hist_art = []
-for j in range(BN):
-    x = BX0 + j * (BW + 2)
-    ax.add_patch(Rectangle((x, BY0), BW, BH, fc=INNER, ec="none", zorder=1, transform=TF["OG"]))
-    hist_art.append(ax.add_patch(Rectangle((x, BY0 + BH), BW, 0, fc=SIG, ec="none", zorder=2, transform=TF["OG"])))
-text(BX0 + BN * (BW + 2) + 4, BY0 + BH / 2, r"$\mathcal{B}$", size=10, color=DIM, b="OG")
-text(BX0, BY0 + BH + 10, "evicts oldest", size=8, color=DIM, b="OG")
-line(P_TRAIN.p, head=True)
-text(706, 152, r"$(\lambda,\tilde\varepsilon)\sim\mathcal{U}_\mathcal{B}$", size=9, color=DIM, b="OG")
-NB_K = 10
-k_bars = []
-for j in range(NB_K):
-    h = (KP[3] - KP[1]) * (j + 0.5) / NB_K
-    x = KP[0] + j * (KP[2] - KP[0]) / NB_K
-    k_bars.append(ax.add_patch(Rectangle((x + 1, KP[3] - h), (KP[2] - KP[0]) / NB_K - 2, h, fc="#2d2140", ec="none",
-                                         transform=TF["OG"])))
-line([(KP[0], KP[3] + 1), (KP[2], KP[3] + 1)], color=DIM, lw=0.8, b="OG")
-text(KP[2] + 3, KP[3] + 1, r"$\tilde\varepsilon$", size=9, color=DIM, b="OG")
-text(KP[0] - 4, KP[1] + 6, r"$k$", size=9, color=DIM, ha="right", b="OG")
-line(P_EPS.p, head=True)
-dd_edges, dd_circ = draw_net(DD_NODES, "OG")
-dd_layer_of = np.concatenate([[l_] * (a * b) for l_, (a, b) in enumerate(zip(DD_N[:-1], DD_N[1:]))])
-text((DD_X[0] + DD_X[-1]) / 2, DD_Y + 44, r"DDPM $p_\phi(\lambda\mid\tilde\varepsilon)$", size=9, color=DIM,
-     ha="center", b="OG")
-line([(DD_X[-1] + 6, DD_Y), (PG[0] - 2, DD_Y)], head=True, b="OG")
-rbox(PG, fc=INNER, r=3, b="OG")
-text((PG[0] + PG[2]) / 2, PG[1] - 9, r"$p_g^{gen}(\lambda)$", size=9.5, color=DIM, ha="center", b="OG")
-cloud = ax.scatter([], [], s=1.3, c="#6e7681", alpha=0.45, edgecolors="none", zorder=2)
-pool_sc = ax.scatter([], [], edgecolors="none", zorder=5)
-lead_sc = ax.scatter([], [], s=30, c=GEN, edgecolors="white", linewidths=1.0, zorder=7)
-rbox(UB, fc=INNER, r=3, b="OG")
-for a in range(3):
-    for b_ in range(3):
-        ax.add_patch(plt.Circle((UB[0] + 6 + 7 * a, UB[1] + 6 + 7 * b_), 1.5, color=UNI, zorder=3, transform=TF["OG"]))
-text(UB[0] - 4, (UB[1] + UB[3]) / 2, r"$\mathcal{U}(\lambda)$", size=9.5, color=DIM, ha="right", b="OG")
-ax.add_patch(plt.Circle(MIX, 9, fc=INNER, ec=DIM, lw=1.0, zorder=3, transform=TF["OG"]))
-text(MIX[0], MIX[1] + 0.5, "+", size=11, color=FG, ha="center", zorder=4, b="OG")
-line([(UB[2] + 2, (UB[1] + UB[3]) / 2), (MIX[0] - 9, MIX[1] - 3)], head=True, b="OG")
-line([((PG[0] + PG[2]) / 2, PG[3] + 2), ((PG[0] + PG[2]) / 2, MIX[1]), (MIX[0] + 10, MIX[1])], head=True, b="OG")
-text(760, 276, r"$\alpha$", size=10, color=UNI, ha="center", b="OG")
-text(900, 290, r"$1-\alpha$", size=9.5, color=GEN, ha="center", b="OG")
-text(MIX[0] - 14, MIX[1] + 14, r"$p_g(\lambda)$", size=9.5, color=FG, ha="right", b="OG")
-ax.add_patch(Rectangle((872, 314), 104, 5, fc=INNER, ec="none", transform=TF["OG"]))
-ramp_u = ax.add_patch(Rectangle((872, 314), 0, 5, fc=UNI, ec="none", transform=TF["OG"]))
-ramp_g = ax.add_patch(Rectangle((872, 314), 0, 5, fc=GEN, ec="none", transform=TF["OG"]))
-line(P_RET, head=True)
-line(P_SIG.p, head=True)
-text((SIG0[0] + B_IN[0]) / 2, Y_TOP - 9, r"$(\lambda,\tilde\varepsilon,t)$", size=9.5, ha="center", color=DIM)
-text((MIX_C[0] + WAIT_IN[0]) / 2, Y_BOT - 9, r"$\lambda$", size=10, ha="center", color=GEN)
-
-rbox(SO, b="SO")
-so_left = M("SO", SO[2], SO[1])
-text(so_left[0] + 9, so_left[1] + 12, r"Solvers $S(\lambda_i)$", size=10.5, weight="bold")
-for x, lab, col in ((FIN_X + CHIP_W / 2, "Finished", FIN), (64 + CW / 2, "Running", RUN), (WAIT_X + CHIP_W / 2, "Waiting", DIM)):
-    text(x, 76, lab, size=8.5, color=col, ha="center", style="italic", b="SO")
-line([(123, 70), (123, 296)], color=RUN, lw=0.9, ls=(0, (3, 3)), b="SO")
-line([(166, 312), (18, 312)], color=DIM, lw=0.9, head=True, b="SO")
-text((SO[0] + SO[2]) / 2, 322, "time", size=8, color=DIM, ha="center", b="SO")
-cell_fill, cell_out = [], []
-for (x, y) in cell_xy:
-    f = Rectangle((x + CW, y), 0, CH, fc=RUN, ec="none", alpha=0.6, zorder=2, transform=TF["SO"])
-    o = FancyBboxPatch((x, y), CW, CH, boxstyle="round,pad=0,rounding_size=2", fc="none", ec=UNI, lw=1.0, zorder=3,
-                       transform=TF["SO"])
-    ax.add_patch(f)
-    ax.add_patch(o)
-    cell_fill.append(f)
-    cell_out.append(o)
-fin_chips = [ax.add_patch(FancyBboxPatch((FIN_X, 88 + j * CHIP_DY), CHIP_W, CHIP_H, transform=TF["SO"],
-                                         boxstyle="round,pad=0,rounding_size=2", fc=FIN, ec="none", alpha=0))
-             for j in range(N_CHIPS)]
-wait_chips = [ax.add_patch(FancyBboxPatch((WAIT_X, 88 + j * CHIP_DY), CHIP_W, CHIP_H, transform=TF["SO"],
-                                          boxstyle="round,pad=0,rounding_size=2", fc=WAIT, ec="none", alpha=0))
-              for j in range(N_CHIPS)]
-wait_tags = [ax.add_patch(Rectangle((WAIT_X + 2, 88 + j * CHIP_DY + 2), 5, CHIP_H - 4, fc=UNI, ec="none", alpha=0,
-                                    transform=TF["SO"])) for j in range(N_CHIPS)]
-rbox(RS, b="RS")
-text((RS[0] + RS[2]) / 2, 57, r"Reservoir $\mathcal{R}$", size=9.5, weight="bold", ha="center", b="RS")
-slot_art = [ax.add_patch(FancyBboxPatch((x, y), SW, SH_, boxstyle="round,pad=0,rounding_size=2", fc=INNER,
-                                        ec=BORDER, lw=0.8, zorder=2, transform=TF["RS"])) for (x, y) in slot_xy]
-text((RS[0] + RS[2]) / 2, 311, "evicts\non write", size=8.5, color=DIM, ha="center", linespacing=1.1, b="RS")
-a0_, a1_ = M("SO", SO[0] + 2, 186), M("RS", RS[0] + 2, 186)
-line([a0_, a1_], head=True)
-text((a0_[0] + a1_[0]) / 2, a0_[1] - 13, r"$X_t^{\lambda}$", size=10, ha="center", color=DIM)
-rbox(DS, b="DS")
-text(436, 57, "Deep Surrogate", size=10.5, weight="bold", b="DS")
-in_img = thumb_stack(IN_X, SUR_Y, "DS")
-out_img = thumb_stack(OUT_X, SUR_Y, "DS")
-sur_edges, _ = draw_net(SUR_NODES, "DS")
-line(P_BATCH.p, head=True)
-text(IN_X + TH / 2, SUR_Y + 30, r"$X^{\lambda}_{[t-r]}$", size=9.5, ha="center", color=DIM, b="DS")
-text((DS[0] + DS[2]) / 2, 296, "1.8 batches / simulation", size=8.5, color=DIM, ha="center", b="DS")
-
-LEG = [("s", GEN, r"$\lambda\sim p_g^{gen}$"), ("s", UNI, r"$\lambda\sim\mathcal{U}$"), ("s", RUN, "running"),
-       ("s", FIN, "finished"), ("s", WAIT, "waiting"), ("|", SIG, r"signal $\tilde\varepsilon$")]
-lx = 430
-for mk, col, lab in LEG:
-    ax.scatter([lx + 4], [H - 14], marker=mk, s=26 if mk != "|" else 60, c=col, linewidths=2.5)
-    text(lx + 12, H - 13.5, lab, size=8.5, color=DIM)
-    lx += 90
-
-pk_sq = ax.scatter([], [], marker="s", edgecolors="none", zorder=6)
-pk_o = ax.scatter([], [], marker="o", edgecolors=BG, linewidths=0.6, zorder=6)
-bar_pool = [ax.add_patch(Rectangle((0, 0), 0, 0, fc=SIG, ec="none", zorder=6)) for _ in range(8)]
-COLS = (UNI, GEN)
+# ---------------------------------------------------------------- dynamic artists
+dim = {k: ax.add_patch(FancyBboxPatch((r[0] - 6, r[1] - 26), r[2] - r[0] + 12, r[3] - r[1] + 32,
+                                      boxstyle="round,pad=0,rounding_size=8", fc=BG, ec="none", alpha=0, zorder=20))
+       for k, r in PANELS.items()}
+halo_sc = ax.scatter([], [], edgecolors="none", zorder=4)
+dot_sc = ax.scatter([], [], edgecolors="white", linewidths=0.9, zorder=5)
+lane_img = [ax.imshow(np.zeros((TH, TH, 3), np.uint8), extent=(TH_X, TH_X + TH, y + TH / 2, y - TH / 2), zorder=3)
+            for y in LANES_Y]
+lane_bar = [ax.add_patch(Rectangle((BAR_X0, y - 4), 0, 8, fc=UNI, ec="none", zorder=3)) for y in LANES_Y]
+gen_sc = ax.scatter([], [], edgecolors="white", linewidths=0.8, zorder=6)
+pk_dot = ax.scatter([], [], edgecolors="white", linewidths=0.8, zorder=30)
+pk_sq = ax.scatter([], [], marker="s", edgecolors="none", zorder=30)
+bar_pool = [ax.add_patch(Rectangle((0, 0), 0, 0, fc=HOT, ec="none", zorder=30)) for _ in range(12)]
+badge = ax.add_patch(Circle((58, 46), 17, fc=STEP_FILL, ec=STEP_EDGE, lw=1.5, zorder=40))
+badge_txt = ax.text(58, 47, "", fontsize=17, weight="bold", color=FG, ha="center", va="center", zorder=41)
+cap = ax.text(88, 36, "", fontsize=19, weight="bold", color=FG, va="center", zorder=41)
+sub = ax.text(88, 62, "", fontsize=14, color=DIM, va="center", style="italic", zorder=41)
+prog = [ax.add_patch(Circle((842 + 24 * i, 46), 6, fc="none", ec=FAINT, lw=1.5, zorder=41)) for i in range(len(STEPS))]
 
 
 def mix(c1, c2, a):
@@ -459,165 +317,122 @@ def mix(c1, c2, a):
     return tuple(c1 + (c2 - c1) * float(np.clip(a, 0, 1)))
 
 
-def color_edges(arts, w, fl, accent, pulse=None, layer_of=None):
-    for e, ln in enumerate(arts):
-        a = min(abs(w[e]) / 1.2, 1.0)
-        c = mix(mix(BORDER, "#58a6ff" if w[e] < 0 else "#d2a8ff", 0.25 + 0.6 * a), accent, 0.75 * fl)
-        if pulse is not None:
-            c = mix(c, GEN, max(0.0, 1 - abs(pulse * 3 - layer_of[e] - 0.5)))
-        ln.set_color(c)
-        ln.set_linewidth(0.4 + 1.1 * a)
-
-
-def last_before(ts, t):
-    return max([u for u in ts if u <= t], default=-9.0)
-
-
 def render(k):
-    t = times[k]
-    pr, sr, new_t, q, fin = cl[k]
-    for i in range(N_SHOW):
-        x, y = cell_xy[i]
-        w = round(CW * pr[i])
-        cell_fill[i].set_bounds(x + CW - w, y, w, CH)
-        fl = max(0.0, 1.0 - (t - new_t[i]) / 0.35)
-        cell_out[i].set_edgecolor(mix(COLS[sr[i]], "#ffffff", fl))
-        cell_out[i].set_linewidth(1.0 + 1.2 * fl)
-    fin = sorted(fin, reverse=True)
-    for j, ch in enumerate(fin_chips):
-        ch.set_alpha(0 if j >= len(fin) else 0.85 * (1 - j / N_CHIPS) * min(1, (t - fin[j]) / 0.15 + 0.3))
-    for j, (ch, tag) in enumerate(zip(wait_chips, wait_tags)):
-        on = j < len(q)
-        ch.set_alpha(0.8 if on else 0)
-        tag.set_alpha(1 if on else 0)
-        if on:
-            tag.set_facecolor(COLS[q[j]])
-    col_s, seen_s, ev_s, rd_s = res_states[k]
-    for s, p in enumerate(slot_art):
-        ev = max(0.0, 1.0 - (t - ev_s[s]) / 0.35)
-        rd = max(0.0, 1.0 - (t - rd_s[s]) / 0.3)
-        p.set_facecolor(INNER if col_s[s] < 0 else mix(INNER, COLS[col_s[s]], 0.3 if seen_s[s] else 0.85))
-        p.set_edgecolor(FIN if ev > 0 else mix(BORDER, "#ffffff", rd))
-        p.set_linewidth(0.8 + 1.2 * max(ev, rd))
-    up = last_before(sur_up, t)
-    color_edges(sur_edges, sur_hist[k], max(0.0, 1.0 - (t - up) / 0.25), TEAL)
-    ti = thumb_hist[k]
-    g_ = np.random.default_rng(ti).normal(0, 1, (40, 40))
-    g_ = (g_ + np.roll(g_, 1, 0) + np.roll(g_, 1, 1) + np.roll(g_, -1, 0)) / 2
-    in_img.set_data(thumbs[ti - 1] if ti else np.zeros((40, 40)))
-    out_img.set_data(thumbs[ti] + 0.35 * g_ if ti else np.zeros((40, 40)))
-    for im in (in_img, out_img):
-        im.set_visible(up >= 0)
-    hvals, hfl = hist_states[k]
-    for j, b in enumerate(hist_art):
-        jj = j - (BN - len(hvals))
-        hh = 0 if jj < 0 else BH * min(hvals[jj], 5) / 5
-        b.set_bounds(BX0 + j * (BW + 2), BY0 + BH - hh, BW, hh)
-        b.set_facecolor(mix(SIG, "#ffffff", 0.7 * max(0.0, 1.0 - (t - hfl[j]) / 0.3)))
-    o, o_c, o_s = [], [], []
-    for (t0, xs, nz) in minibatches:
-        u = (t - t0) / 0.6
+    t, s = times[k], int(step_of[k])
+    # captions and step indicator
+    u_in, u_out = (t - T[s]) / 0.35, (T[s + 1] - t) / 0.25
+    a = float(np.clip(min(u_in, u_out if s < len(STEPS) - 1 else 9), 0, 1))
+    cap.set_text(STEPS[s][0])
+    sub.set_text(STEPS[s][1])
+    cap.set_alpha(a)
+    sub.set_alpha(float(np.clip((t - T[s] - 0.3) / 0.4, 0, 1)) * a)
+    badge_txt.set_text(str(s + 1))
+    for i, c in enumerate(prog):
+        c.set_facecolor(STEP_EDGE if i == s else (STEP_FILL if i < s else "none"))
+        c.set_edgecolor(STEP_EDGE if i <= s else FAINT)
+    # focus: dim the panels that are not part of this step
+    for key, p in dim.items():
+        now = key in ACTIVE[s]
+        prev = key in ACTIVE[s - 1] if s > 0 else now
+        u = float(ease((t - T[s]) / 0.4))
+        p.set_alpha(0.7 * ((1 - now) * u + (1 - prev) * (1 - u)))
+    # parameter space
+    xy, cols, hxy, hs, hc = [], [], [], [], []
+    for d in dots:
+        if d["t_in"] > t:
+            continue
+        p = to_a(d["x"], d["y"])
+        pop = float(ease((t - d["t_in"]) / 0.25))
+        xy.append(p)
+        cols.append(UNI if d["kind"] == "uni" else GEN)
+        if d["t_score"] is not None and t >= d["t_score"]:
+            hv = float(ease((t - d["t_score"]) / 0.5))
+            hxy.append(p)
+            hs.append((7 + 15 * d["d"]) ** 2 * hv)
+            hc.append(matplotlib.colors.to_rgba(HOT, (0.08 + 0.5 * d["d"]) * hv))
+        cols[-1] = matplotlib.colors.to_rgba(cols[-1], pop)
+    dot_sc.set_offsets(np.array(xy) if xy else np.empty((0, 2)))
+    dot_sc.set_facecolors(cols if cols else [(0, 0, 0, 0)])
+    dot_sc.set_sizes([36] * len(xy) if xy else [0])
+    halo_sc.set_offsets(np.array(hxy) if hxy else np.empty((0, 2)))
+    halo_sc.set_sizes(hs if hs else [0])
+    halo_sc.set_facecolors(hc if hc else [(0, 0, 0, 0)])
+    # solvers
+    for li, (img, bar) in enumerate(zip(lane_img, lane_bar)):
+        st = lane_state[k][li]
+        if st is None:
+            img.set_visible(False)
+            bar.set_width(0)
+            continue
+        prog_, panel, kind = st
+        fi = int(prog_ * (len(thumbs[panel]) - 1)) // 2 * 2  # the fields change at half the frame rate
+        img.set_data(thumbs[panel][fi])
+        img.set_visible(True)
+        bar.set_width((BAR_X1 - BAR_X0) * prog_)
+        bar.set_facecolor(UNI if kind == "uni" else GEN)
+    # surrogate activity
+    hit = max([p for p in pulses if p <= t], default=-9.0)
+    fl = max(0.0, 1.0 - (t - hit) / 0.35)
+    for e in edges:
+        e.set_color(mix(EDGE, PULSE, 0.8 * fl))
+    out = max([o for o in outs if o <= t], default=-9.0)
+    fo = max(0.0, 1.0 - (t - out) / 0.4)
+    for i, c in enumerate(node_art):
+        out_node = i >= len(node_art) - NET_N[-1]
+        c.set_facecolor(mix(NODE_FILL, HOT, fo) if out_node else mix(NODE_FILL, PULSE, 0.6 * fl))
+    # generator: learned map, then generation by denoising
+    glow.set_alpha(float(ease((t - T[3] - 0.4) / 2.6)))
+    gxy, gcol = [], []
+    pxy, pcol, psz = [], [], []
+    for b in batches:
+        u = (t - b["t0"]) / 1.1
         if 0 <= u < 1:
-            for j, x in enumerate(xs):
-                path = Path([tuple(M("OG", x, BY0 + BH))] + P_TRAIN.p.tolist())
-                o.append(path.at(ease(u)) + 5 * u * nz[j])
-                o_c.append(matplotlib.colors.to_rgba(SIG, 1 - 0.6 * u))
-                o_s.append(14)
-    training = any(0 <= t - m[0] < 0.9 for m in minibatches)
-    samp, pulse, pxy, psz, pcc, lead = None, None, [], [], [], None
-    for r_ in resamplings:
-        if r_["t0"] <= t < r_["t_end"]:
-            samp = r_
-    dd_fl = max(0.0, 1.0 - (t - last_before(dd_up, t)) / 0.25)
-    kb = np.zeros(NB_K)
-    if samp is not None and t < samp["t1"] and not samp["fast"]:
-        u = (t - samp["t0"]) / (samp["t1"] - samp["t0"])
-        rn = np.random.default_rng(samp["g"]).normal(0, 1, samp["pts"].shape)
-        q_ = np.clip((u - 0.2) / 0.8, 0, 1) * N_REV
-        step = int(min(q_, N_REV - 1e-9))
-        pulse = (q_ - step) if q_ > 0 else None
-        cur = step + ease((q_ - step) / 0.35) if q_ > 0 else 0.0
-        pos = reflect(samp["pts"] + 0.35 * (1 - cur / N_REV) ** 1.3 * rn)
-        pxy += list(pos)
-        psz += [9] * len(pos)
-        pcc += [mix("#8b949e", GEN, cur / N_REV)] * len(pos)
-        lead = pos[:1] if len(pos) else None
-        rr = np.random.default_rng(samp["g"] + 7)
-        kb[np.minimum((NB_K * np.sqrt(rr.random(12))).astype(int), NB_K - 1)] = 1.0 * (u < 0.35)
-        if u < 0.35:
-            o.append(P_EPS.at(ease(u / 0.35)))
-            o_c.append(GEN)
-            o_s.append(22)
-    elif samp is not None:
-        pxy += list(samp["pts"])
-        psz += [9] * len(samp["pts"])
-        pcc += [matplotlib.colors.to_rgba(GEN, 0.9 if t < samp["t2"] else 0.55)] * len(samp["pts"])
-        if samp["fast"] and t < samp["t1"]:
-            pulse = 0.5
-    for j, b in enumerate(k_bars):
-        b.set_facecolor(mix("#2d2140", GEN, kb[j]))
-    color_edges(dd_edges, dd_hist[k], dd_fl, SIG, pulse, dd_layer_of)
-    for li, layer in enumerate(dd_circ):
-        hot = 0.0 if pulse is None else max(0.0, 1 - abs(pulse * 3 - li) / 0.8)
-        for c_ in layer:
-            c_.set_edgecolor(mix(DIM, GEN, hot))
-    samp_on = samp is not None and t < samp["t1"]
-    hd_train.set_color(SIG if training and not samp_on else DIM)
-    hd_samp.set_color(GEN if samp_on else DIM)
-    n = int(n_disp[k])
-    cloud.set_offsets(M("OG", pg_xy(np.c_[LX[:n], LY[:n]])))
-    pool_sc.set_offsets(M("OG", pg_xy(np.array(pxy))) if pxy else np.empty((0, 2)))
-    pool_sc.set_sizes(psz if psz else [0])
-    pool_sc.set_facecolors(pcc if pcc else [(0, 0, 0, 0)])
-    lead_sc.set_offsets(M("OG", pg_xy(lead)) if lead is not None else np.empty((0, 2)))
-    for r_ in resamplings:
-        if r_["t1"] <= t < r_["t2"]:
-            u = (t - r_["t1"]) / (r_["t2"] - r_["t1"])
-            nb = int(round(10 * r_["share"]))
-            for j in range(10):
-                gen_ = j < nb
-                a0 = M("OG", pg_xy(r_["pts"][j % max(len(r_["pts"]), 1)])[0]) if gen_ and len(r_["pts"]) else \
-                    M("OG", UB[2], (UB[1] + UB[3]) / 2)
-                uj = np.clip(u * 1.6 - 0.06 * j, 0, 1)
-                if uj <= 0 or uj >= 1:
-                    continue
-                path = Path([tuple(a0), tuple(MIX_C)] + P_RET[1:])
-                o.append(path.at(ease(uj)))
-                o_c.append(COLS[int(gen_)])
-                o_s.append(22)
-    sq, sq_c, sq_s = [], [], []
-    for (t0, t1, path, col) in state_packets:
-        if t0 <= t < t1:
-            sq.append(path.at(ease((t - t0) / (t1 - t0))))
-            sq_c.append(COLS[col])
-            sq_s.append(18)
-    for (t0, t1, cols) in batch_packets:
-        if t0 <= t < t1:
-            c = P_BATCH.at(ease((t - t0) / (t1 - t0)))
-            for j, col in enumerate(cols):
-                sq.append(c + np.array([(j % 2) * 6 - 3, (j // 2) * 6 - 6]))
-                sq_c.append(COLS[col])
-                sq_s.append(16)
-    for sc, xy_, c_, s_ in ((pk_sq, sq, sq_c, sq_s), (pk_o, o, o_c, o_s)):
-        sc.set_offsets(np.round(np.array(xy_) * 2) / 2 if xy_ else np.empty((0, 2)))
-        sc.set_facecolors(c_ if c_ else [(0, 0, 0, 0)])
-        sc.set_sizes(s_ if s_ else [0])
-    live = [(t0, t1, e) for (t0, t1, e) in bar_packets if t0 <= t < t1]
-    for j, b in enumerate(bar_pool):
-        if j < len(live):
-            t0, t1, e = live[j]
-            x, y = P_SIG.at(ease((t - t0) / (t1 - t0)))
-            hh = 4 + 16 * e / 5
-            b.set_bounds(round(x) - 2.5, round(y) - hh / 2, 5, hh)
+            noise = 0.18 * (1 - ease(u)) * np.sin(7 * u + np.arange(len(b["targets"]))[:, None] * 1.7)
+            pos = b["starts"] + (b["targets"] - b["starts"]) * ease(u) + noise
+            gxy += [to_d(*p) for p in np.clip(pos, 0, 1)]
+            gcol += [mix(DIM, GEN, ease(u))] * len(pos)
+        elif 1 <= u < 1.25:
+            gxy += [to_d(*p) for p in b["targets"]]
+            gcol += [GEN] * len(b["targets"])
+        for j, (x, y) in enumerate(b["targets"]):
+            v = (t - b["t0"] - 1.25 - 0.06 * j) / 1.2
+            if 0 <= v < 1:
+                path = Path([to_d(x, y), (RET_X_D, PANELS["D"][3] + 4)] + RET[1:-1] + [(RET_X_A, PANELS["A"][3]), to_a(x, y)])
+                pxy.append(path.at(ease(v)))
+                pcol.append(GEN)
+                psz.append(40)
+    gen_sc.set_offsets(np.array(gxy) if gxy else np.empty((0, 2)))
+    gen_sc.set_facecolors(gcol if gcol else [(0, 0, 0, 0)])
+    gen_sc.set_sizes([34] * len(gxy) if gxy else [0])
+    # moving packets
+    sq, sqc = [], []
+    bars = []
+    for p in packets:
+        if not p["t0"] <= t < p["t1"]:
+            continue
+        pos = p["path"].at(ease((t - p["t0"]) / (p["t1"] - p["t0"])))
+        if p["kind"] == "dot":
+            pxy.append(pos)
+            pcol.append(p["color"])
+            psz.append(40)
+        elif p["kind"] == "sq":
+            sq.append(pos)
+            sqc.append(p["color"])
         else:
-            b.set_bounds(0, 0, 0, 0)
-    g = int(gen_disp[k])
-    hdr.set_text(f"generation {g:3d}   ·   {n:6,d} / {N_BUDGET:,} simulations")
-    ff_tag.set_alpha(1.0 if is_ff[k] else 0.0)
-    sh = share(int(n_res_at[k]))
-    ramp_u.set_width(104 * (1 - sh))
-    ramp_g.set_x(872 + 104 * (1 - sh))
-    ramp_g.set_width(104 * sh)
+            bars.append((pos, p["extra"]))
+    pk_dot.set_offsets(np.array(pxy) if pxy else np.empty((0, 2)))
+    pk_dot.set_facecolors(pcol if pcol else [(0, 0, 0, 0)])
+    pk_dot.set_sizes(psz if psz else [0])
+    pk_sq.set_offsets(np.array(sq) if sq else np.empty((0, 2)))
+    pk_sq.set_facecolors(sqc if sqc else [(0, 0, 0, 0)])
+    pk_sq.set_sizes([30] * len(sq) if sq else [0])
+    for j, r in enumerate(bar_pool):
+        if j < len(bars):
+            (x, y), d = bars[j]
+            h = 6 + 22 * d
+            r.set_bounds(x - 3, y - h / 2, 6, h)
+        else:
+            r.set_bounds(0, 0, 0, 0)
     buf = io.BytesIO()
     fig.savefig(buf, format="png", facecolor=BG)
     return Image.open(buf).convert("RGB")
@@ -629,12 +444,14 @@ n_fade = int(round(FADE_S * FPS))
 for a in np.arange(1, n_fade + 1) / (n_fade + 1):
     rgb.append(Image.fromarray(np.round((1 - a) * last + a * first).astype(np.uint8)))
 durations = [int(round(1000 / FPS))] * len(rgb)
+for i in range(len(STEPS)):
+    durations[int(round(T[i + 1] * FPS)) - 1] += 400  # short pause at the end of each step
 if args.stills:
     os.makedirs(args.stills, exist_ok=True)
-    for tt in (3.0, 6.0, 8.0, 10.5, 12.0, 16.0, 19.5):
-        rgb[int(tt * FPS)].save(os.path.join(args.stills, f"loop_{tt:04.1f}.png"))
+    for i in range(len(STEPS)):
+        rgb[int(round(T[i + 1] * FPS)) - 2].save(os.path.join(args.stills, f"step{i + 1}.png"))
 os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-kept = save_gif(args.out, rgb, durations, colors=254, reference=range(0, len(rgb), len(rgb) // 8))
+kept = save_gif(args.out, rgb, durations, colors=254, reference=range(0, len(rgb), max(1, len(rgb) // 10)))
 n_saved, err = check_gif(args.out, [rgb[k] for k in kept])
 print(f"{args.out}: {os.path.getsize(args.out) / 1e6:.2f} MB, {n_saved} frames, {rgb[0].size}, "
-      f"{len(rgb) / FPS:.1f} s, loop=0, mean abs decode error {err:.2f}")
+      f"{sum(durations) / 1000:.1f} s, mean abs decode error {err:.2f}")
