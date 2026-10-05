@@ -44,8 +44,6 @@ dmypy.json
 .idea/
 
 # Outputs and artifacts
-*.gif
-!docs/assets/*.gif
 *.npy
 *.npz
 std/
@@ -109,7 +107,6 @@ Thumbs.db
 /experiments/
 .venv
 # not part of the release
-/docs/
 /scripts/analysis/benchmark_gflops_2d.py
 /scripts/leo/job_benchmark_gflops_2d.sh
 /scripts/analysis/characterize_valsets.py
