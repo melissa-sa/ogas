@@ -1,0 +1,8 @@
+scenario_name,ic_family,comment,sample_physics
+gray_scott_beta_low_res,gaussian_blobs, gaussian blobs (10 blobs w/ covariance),true
+kuramoto_sivashinsky_2d_low_res,fourier,fourier grid,true
+navier_stokes_kolmogorov_flow_2d_low_res,fourier, fourier grid,true
+burgers_1d,sine_sup, 1D Burgers sine superposition,false
+diff_kdv__2w_x04_harder_max1_1d_x5,sine_sup, 1D diffusive KdV sine superposition,false
+diff_ks__2w_x07_harder_1d_x5,sine_sup, 1D diffusive KS sine superposition,false
+diff_ks_cons__3w_x09_harder_max1_1d_x5,sine_sup, 1D conservative diffusive KS sine superposition,false

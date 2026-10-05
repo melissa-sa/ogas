@@ -1,0 +1,115 @@
+{
+  "online": {
+    "server_filename": "$APEBENCH_ROOT/apebench_online/core/apebench_server.py",
+    "server_class": "APEBenchServer",
+    "output_dir": "",
+    "study_options": {
+      "node_names": [
+        "preposition",
+        "position"
+      ],
+      "simulation_timeout": 7200,
+      "crashes_before_redraw": 1,
+      "verbosity": 2,
+      "persistent_client_mode": true
+    },
+    "active_sampling_config": {},
+    "external_validator_stop_fname": "STOP_VALIDATION",
+    "dl_config": {
+      "tensorboard": false,
+      "wandb": true,
+      "buffer": "Reservoir",
+      "convert_log_to_df": false,
+      "valid_rollout_fast": true,
+      "valid_rollout_memory_efficient": true,
+      "valid_num_samples": 750,
+      "use_ema_for_validation": true,
+      "ema_decay": 0.999,
+      "ema_start_step": 0,
+      "ema_update_every": 1,
+      "rate_limit_speed_batch_per_sim": 1.8
+    },
+    "launcher_config": {
+      "std_output": false,
+      "scheduler": "slurm-global",
+      "scheduler_arg_server": [
+        "--het-group=1"
+      ],
+      "scheduler_arg_client": [
+        "--het-group=0",
+        "--ntasks=1"
+      ],
+      "server_timeout": 1800,
+      "fault_tolerance": false,
+      "verbosity": 2,
+      "job_limit": 56,
+      "timer_delay": 5,
+      "http_port": 8375
+    },
+    "client_config": {
+      "executable_command": "$APEBENCH_ROOT/apebench_online/core/solver.py",
+      "command_default_args": [],
+      "preprocessing_commands": []
+    },
+    "server_config": {
+      "preprocessing_commands": [
+        "export XLA_PYTHON_CLIENT_MEM_FRACTION=0.25",
+        "export OMPI_MCA_hcoll=\"^hcoll\"",
+        "export TF_ENABLE_ONEDNN_OPTS=0",
+        "export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True"
+      ]
+    },
+    "monitoring_config": {
+      "plotting_config": {
+        "plot_rows": 5
+      },
+      "checkpoint_model_best": true,
+      "checkpoint_model_last": true,
+      "checkpoint_model_each_step": 250,
+      "checkpoint_model_max_num_files": 3
+    }
+  },
+  "offline": {
+    "server_filename": "$APEBENCH_ROOT/apebench_online/core/apebench_server.py",
+    "server_class": "APEBenchOfflineServer",
+    "output_dir": "",
+    "study_options": {
+      "node_names": [
+        "preposition",
+        "position"
+      ],
+      "simulation_timeout": 7200,
+      "crashes_before_redraw": 1,
+      "verbosity": 2
+    },
+    "launcher_config": {
+      "std_output": false,
+      "scheduler": "slurm-global",
+      "scheduler_arg_server": [
+        "--het-group=1"
+      ],
+      "scheduler_arg_client": [
+        "--het-group=0",
+        "--ntasks=1"
+      ],
+      "server_timeout": 1800,
+      "fault_tolerance": false,
+      "verbosity": 2,
+      "job_limit": 112
+    },
+    "client_config": {
+      "executable_command": "$APEBENCH_ROOT/apebench_online/core/solver.py",
+      "command_default_args": [
+        "--offline"
+      ],
+      "preprocessing_commands": []
+    },
+    "server_config": {
+      "preprocessing_commands": [
+        "export XLA_PYTHON_CLIENT_MEM_FRACTION=0.25",
+        "export OMPI_MCA_hcoll=\"^hcoll\"",
+        "export TF_ENABLE_ONEDNN_OPTS=0"
+      ]
+    }
+  }
+}

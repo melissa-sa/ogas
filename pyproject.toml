@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apebench-online"
+version = "0.1.0"
+description = "OGAS: online generative active sampling for neural PDE surrogates (Melissa + APEBench)"
+readme = "README.md"
+authors = [{name = "DATAMOVE Team"}]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.8.0",
+    "jax[cuda12_local]==0.7.0",
+    "apebench",
+    "wandb",
+    "scikit-learn",
+    "scipy==1.17.1",
+    "snakemake"
+]
+
+[tool.setuptools.packages.find]
+include = ["apebench_online*", "scripts*", "tests*"]
+
+[tool.black]
+line-length = 100
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | melissa
+  | snakemake_setup
+)/
+'''
+include = '\.pyi?$'

@@ -1,0 +1,130 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.pdf
+*metrics*
+!apebench_online/validation/external_validation/metrics.py
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.csv
+!snakemake_setup/pde_set.csv
+# Jupyter Notebook
+.ipynb_checkpoints
+val_loss_vs_param
+param_generation_evolution
+batch_outputs
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# Outputs and artifacts
+*.gif
+!docs/assets/*.gif
+*.npy
+*.npz
+std/
+*.out
+*.err
+best_metrics*/
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+.melissa-apebench-venv/
+
+# Snakemake
+logs/
+.snakemake/
+
+# Spack
+.spack/
+.spack-env/
+
+# Melissa build artifacts
+melissa/build/
+melissa/install/
+
+# W&B
+wandb/
+
+# Visualization outputs
+*viz*/
+yaml_analysis/
+comparison*/
+
+# Generated checkpoints
+checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Pytest
+.pytest_cache/
+
+# Local configuration (not to be shared)
+.env
+.envrc
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+# experiment outputs and local environment
+/experiments/
+.venv
+# not part of the release
+/docs/
+/scripts/analysis/benchmark_gflops_2d.py
+/scripts/leo/job_benchmark_gflops_2d.sh
+/scripts/analysis/characterize_valsets.py
+/scripts/analysis/trajectory_errors.py
+/scripts/analysis/paper/valset_descriptors.py
+/scripts/analysis/simulate_and_score.py
+/scripts/analysis/plot_error_param_space.py
+/scripts/analysis/sample_ddpm_valset.py
+/scripts/analysis/regenerate_validation_set.py
+/scripts/plot_trajectories.py
+/scripts/visualize_ic_types.py
+/scripts/kraken/
+/kraken_melissa_init.sh
+/.kraken_envrc.example
+/snakemake_setup/config_kraken.yaml
+/snakemake_setup/default_configs_oar.json
+/requirements.txt
+/scripts/hard_eval/

@@ -1,0 +1,130 @@
+import os
+import yaml
+import pandas as pd
+
+
+configfile: "config.yaml"
+
+os.environ.setdefault("EXP_DIR", os.path.dirname(os.path.abspath(workflow.basedir)))
+
+# --- Load Setup ---
+scenario_df = pd.read_csv(config["paths"]["csv"])
+# Filter active scenarios
+if config["active_scenarios"]:
+    scenario_df = scenario_df[scenario_df["scenario_name"].isin(config["active_scenarios"])]
+SCENARIOS = scenario_df["scenario_name"].unique().tolist()
+
+SEEDS = config["seeds"]
+ENABLED_REGIME_GROUPS = config.get("enabled_regime_groups") or list(config["regimes"])
+REGIMES = []
+for group_name in ENABLED_REGIME_GROUPS:
+    REGIMES.extend(config["regimes"].get(group_name, []))
+MODELS = config.get("conditional_models") or list(config.get("torch_variants", {})) or ["baseline"]
+
+EXP_ROOT = os.path.expandvars(config["paths"]["experiments_root"])
+VAL_ROOT = os.path.expandvars(config["paths"]["validation_root"])
+CONFIG_YAML = config["paths"].get("config_yaml", "config.yaml")
+
+ONLINE_TARGETS = expand(
+    f"{EXP_ROOT}/{{scenario}}/{{model}}/{{regime}}/config_online_{{seed}}.json",
+    scenario=SCENARIOS,
+    model=MODELS,
+    regime=REGIMES,
+    seed=SEEDS,
+)
+OFFLINE_TARGETS = expand(f"{VAL_ROOT}/config_offline_{{scenario}}.json", scenario=SCENARIOS)
+OFFLINE_DETAIL_TARGETS = (
+    expand(f"{VAL_ROOT}/config_offline_detail_{{scenario}}.json", scenario=SCENARIOS)
+    if config.get("include_offline_detail", True)
+    else []
+)
+
+# --- Targets ---
+rule all:
+    input:
+        OFFLINE_TARGETS + OFFLINE_DETAIL_TARGETS + ONLINE_TARGETS
+
+# --- Offline (Validation) Config ---
+rule generate_offline:
+    input:
+        template = config["paths"]["template"],
+        csv = config["paths"]["csv"],
+        yaml = CONFIG_YAML
+    output:
+        f"{VAL_ROOT}/config_offline_{{scenario}}.json"
+    params:
+        out_dir = lambda wildcards: f"{VAL_ROOT}/{wildcards.scenario}"
+    log:
+        f"logs/offline/{{scenario}}.log"
+    wildcard_constraints:
+        scenario="(?!detail_).*"
+    shell:
+        """
+        python ../scripts/generate_config_cli.py \
+            --mode offline \
+            --scenario {wildcards.scenario} \
+            --csv {input.csv} \
+            --template {input.template} \
+            --yaml {input.yaml} \
+            --output_file {output} \
+            --output_dir {params.out_dir} \
+            > {log} 2>&1
+        """
+
+rule generate_offline_detail:
+    input:
+        template = config["paths"]["template"],
+        csv = config["paths"]["csv"],
+        yaml = CONFIG_YAML
+    output:
+        f"{VAL_ROOT}/config_offline_detail_{{scenario}}.json"
+    params:
+        out_dir = lambda wildcards: f"{VAL_ROOT}/{wildcards.scenario}/detail_val"
+    log:
+        f"logs/offline_detail/{{scenario}}.log"
+    shell:
+        """
+        python ../scripts/generate_config_cli.py \
+            --mode offline \
+            --scenario {wildcards.scenario} \
+            --csv {input.csv} \
+            --template {input.template} \
+            --yaml {input.yaml} \
+            --output_file {output} \
+            --output_dir {params.out_dir} \
+            --use-detail-val \
+            > {log} 2>&1
+        """
+
+# --- Online (Experiment) Config ---
+rule generate_online:
+    input:
+        template = config["paths"]["template"],
+        csv = config["paths"]["csv"],
+        yaml = CONFIG_YAML,
+        # Implicit dep: Online generation doesn't strictly read the offline json,
+        # but logically the offline study produces the data needed here.
+    output:
+        f"{EXP_ROOT}/{{scenario}}/{{model}}/{{regime}}/config_online_{{seed}}.json"
+    params:
+        out_dir = lambda wildcards: f"{EXP_ROOT}/{wildcards.scenario}/{wildcards.model}/{wildcards.regime}/seed_{wildcards.seed}",
+        # Points to where validation data is expected
+        val_dir = lambda wildcards: f"{VAL_ROOT}/{wildcards.scenario}/trajectories"
+    log:
+        f"logs/online/{{scenario}}_{{model}}_{{regime}}_{{seed}}.log"
+    shell:
+        """
+        python ../scripts/generate_config_cli.py \
+            --mode online \
+            --scenario {wildcards.scenario} \
+            --regime {wildcards.regime} \
+            --seed {wildcards.seed} \
+            --torch_variant {wildcards.model} \
+            --csv {input.csv} \
+            --template {input.template} \
+            --yaml {input.yaml} \
+            --output_file {output} \
+            --output_dir {params.out_dir} \
+            --validation_dir {params.val_dir} \
+            > {log} 2>&1
+        """

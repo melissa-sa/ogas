@@ -1,0 +1,136 @@
+paths:
+  template: "default_configs_slurm.json"
+  csv: "pde_set.csv"
+  experiments_root: "$EXP_DIR/experiments/test_ensemble"
+  validation_root: "$EXP_DIR/experiments/conditional_models_exp/val_data"
+
+# Single Snakefile controls all variants via config.
+config_generator: "../scripts/generate_config_cli.py"
+enabled_regime_groups: ["standard", "ogas_breeder", "sbal"]
+include_offline_detail: true
+
+# Only test on navier_stokes
+active_scenarios: []
+
+seeds: [1,2,3]
+
+regimes:
+  standard:
+    - "no_resampling"
+    - "no_resampling_sobol"
+    - "mixed_nrmse"
+    - "uniform"
+  ogas_breeder:
+    - "ddpm_conf_ratio_proportional_normalized"
+    - "ddpm_conf_ratio_proportional_uncertainty"
+    - "ddpm_conf_ratio_proportional_ecrps"
+  sbal:
+    - "sbal" 
+    - "sbal_topk"
+
+dl_defaults:
+  model_name: "TorchFNO"
+  num_channels: 6
+  num_blocks: 5
+  lr_start: 1.0e-3
+  lr_peak: 1.0e-4
+  lr_interval: 5000
+  batch_size: 64
+  nb_time_steps: 30
+  temporal_horizon: 50
+  train_random_t_plus_1_or_2: true
+  valid_batch_size: 256
+  valid_num_samples: 750
+  use_detail_val: false
+  use_ema_for_validation: false
+  ema_decay: 0.999
+  ema_start_step: 250
+  ema_update_every: 1
+  normalize_physics: true
+  use_ada_grad: true
+
+melissa_defaults:
+  total_nb_simulations_training: 10000
+  total_nb_simulations_validation: 750
+  timeout_minutes: 360
+  nb_clients: 56
+  nb_clients_2d_high_res: 112
+  timer_delay: 5
+  buffer_size_pct: 0.015  
+  buffer_size_pct_ogas_breeder: 0.015
+  watermark_num_sim: 50 
+
+conditional_models:
+  - fno_cond
+  - unet_cond
+  - scot_t256
+
+
+torch_variants:
+  fno_cond:
+    model_name: "TorchFNO"
+    sample_physics: true
+    valid_batch_size: 64
+    
+    torch_model:
+      type: "fno"
+      history: 1
+      width: 32
+      modes: 60
+      predict_delta: true
+    torch_optimizer:
+      type: "adam"
+      lr: 5.0e-4
+      weight_decay: 0.0
+    torch_scheduler:
+      type: "cosine"
+      warmup_steps: 1000
+      total_steps: 200000
+    torch_device: "cuda"
+    
+  unet_cond:
+    model_name: "TorchUNet"
+    sample_physics: true
+    valid_batch_size: 64
+    torch_model:
+      type: "unet"
+      history: 1
+      hidden_channels: 8
+      ch_mults: [1, 2, 2, 4]
+      is_attention: [false, false, false, false]
+      mid_attention: false
+      n_blocks: 2
+      use_scale_shift_norm: false
+      predict_delta: true
+      delta_scale: 0.3
+    torch_optimizer:
+      type: "adam"
+      lr: 3.0e-4
+      weight_decay: 0.0
+    torch_scheduler:
+      type: "cosine"
+      warmup_steps: 1500
+      total_steps: 200000
+    torch_device: "cuda"
+
+  scot_t256:
+    model_name: "TorchScOT"
+    sample_physics: true
+    valid_batch_size: 1024
+    torch_model:
+      type: "scot"
+      variant: "T256"
+      predict_delta: true
+      delta_scale: 1.0
+    torch_optimizer:
+      type: "adamw"
+      lr: 6.0e-4
+      weight_decay: 1.0e-2
+      betas: [0.9, 0.95]
+    torch_scheduler:
+      type: "cosine"
+      warmup_steps: 500
+      total_steps: 200000
+      t_max: 50000
+      eta_min: 1.0e-5
+    torch_device: "cuda"

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# Leonardo environment for the OGAS / Melissa stack (sourced by leo_melissa_init.sh).
+_LEO_ENV_FILE="${BASH_SOURCE[0]}"
+_LEO_ENV_DIR="$(cd "$(dirname "$_LEO_ENV_FILE")" && pwd)"
+export APEBENCH_ROOT="${APEBENCH_ROOT:-$_LEO_ENV_DIR}"
+export MELISSA_ROOT="${MELISSA_ROOT:-$APEBENCH_ROOT/melissa}"
+export EXTERNAL_VAL_SCRIPT="${EXTERNAL_VAL_SCRIPT:-$APEBENCH_ROOT/apebench_online/validation/external_validator.py}"
+
+# Optional overrides: MELISSA_ENV (virtual environment, default <repo>/.venv) and EXP_DIR (root of the
+# configs and runs, default <repo>). Setting LEONARDO_PROJECT_ROOT keeps the historical venv location.
+export MELISSA_EDITABLE="${MELISSA_EDITABLE:-1}"
+if [[ -n "${LEONARDO_PROJECT_ROOT:-}" ]]; then
+    export MELISSA_ENV="${MELISSA_ENV:-$LEONARDO_PROJECT_ROOT/environment_base_editable}"
+    export UV_CACHE_DIR="${UV_CACHE_DIR:-$LEONARDO_PROJECT_ROOT/.uv-cache}"
+else
+    export MELISSA_ENV="${MELISSA_ENV:-$APEBENCH_ROOT/.venv}"
+fi
+export EXP_DIR="${EXP_DIR:-$APEBENCH_ROOT}"
+export MELISSA_PUBLIC="${MELISSA_PUBLIC:-/leonardo/pub/userexternal/apuranda}"
+export WANDB_MODE="${WANDB_MODE:-offline}"
+
+_leo_prepend_cuda_libs() {
+    if [[ -d "$MELISSA_ENV/lib/python3.11/site-packages/nvidia" ]]; then
+        for _leo_cuda_lib in "$MELISSA_ENV"/lib/python3.11/site-packages/nvidia/*/lib; do
+            [[ -d "$_leo_cuda_lib" ]] || continue
+            export LD_LIBRARY_PATH="$_leo_cuda_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        done
+    fi
+}
+
+# Guard against re-execution
+if [[ -n "${_APEBENCH_ENVRC_LOADED:-}" ]]; then
+    _leo_prepend_cuda_libs
+    return
+fi
+export _APEBENCH_ENVRC_LOADED=1
+
+export PYTHONPATH="$APEBENCH_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export LD_LIBRARY_PATH="$MELISSA_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# For public zeromq installed
+export LD_LIBRARY_PATH="$MELISSA_PUBLIC/libsodium-stable/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PKG_CONFIG_PATH="$MELISSA_PUBLIC/libzmq-4.3.5/install/lib64/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+
+# Torch wheels bring CUDA 12.8 libraries.  They must precede the system CUDA
+# module (which may be 12.2) or libnvJitLink resolves to the wrong ABI.
+_leo_prepend_cuda_libs

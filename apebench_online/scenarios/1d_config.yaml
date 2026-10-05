@@ -1,0 +1,112 @@
+pde_list:
+  advection:
+    _base_pde_name: "advection"
+    dim: 1
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 75
+    ts_val: 100
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive"]
+    boundary_conditions: ["periodic", "periodic"]
+    physical_constant:
+      velocity:
+        dim: 1
+        min: [-5.0]
+        max: [5.0]
+    initial_conditions:
+      sine_sup:
+        num_waves: 2
+        max_one: false
+
+  burgers_1d:
+    _base_pde_name: "burgers"
+    dim: 1
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 800
+    ts: 75
+    ts_val: 99
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive"]
+    boundary_conditions: ["periodic", "periodic"]
+    stepper_kwargs:
+      diffusivity: 0.01
+      convection_scale: 1.0
+      single_channel: true
+      conservative: false
+    initial_conditions:
+      sine_sup:
+        num_waves: 2
+        max_one: false
+
+  diff_kdv__2w_x04_harder_max1_1d_x5:
+    _base_pde_name: "diff_kdv"
+    dim: 1
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 800
+    ts: 75
+    ts_val: 99
+    dt: 1.0
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive"]
+    boundary_conditions: ["periodic", "periodic"]
+    stepper_kwargs:
+      dispersion_gamma: -2500.0
+      hyp_diffusion_gamma: -3125.0
+      convection_sc_delta: -10.0
+    initial_conditions:
+      sine_sup:
+        num_waves: 2
+        max_one: true
+
+  diff_ks__2w_x07_harder_1d_x5:
+    _base_pde_name: "diff_ks"
+    dim: 1
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 800
+    ts: 75
+    ts_val: 99
+    dt: 1.0
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive"]
+    boundary_conditions: ["periodic", "periodic"]
+    stepper_kwargs:
+      diffusion_gamma: -82.5
+      hyp_diffusion_gamma: -18750.0
+      gradient_norm_delta: -150.0
+    initial_conditions:
+      sine_sup:
+        num_waves: 2
+        max_one: false
+
+  diff_ks_cons__3w_x09_harder_max1_1d_x5:
+    _base_pde_name: "diff_ks_cons"
+    dim: 1
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 800
+    ts: 75
+    ts_val: 99
+    dt: 1.0
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive"]
+    boundary_conditions: ["periodic", "periodic"]
+    stepper_kwargs:
+      diffusion_gamma: -62.5
+      hyp_diffusion_gamma: -12500.0
+      convection_delta: -5.0
+    initial_conditions:
+      sine_sup:
+        num_waves: 3
+        max_one: true

@@ -1,0 +1,5 @@
+VALIDATION_DIR = "trajectories"
+VALIDATION_INPUT_PARAM_FILE = f"{VALIDATION_DIR}/input_parameters.npy"
+FIELD_PREV_POSITION = "preposition"
+FIELD_POSITION = "position"
+FIELD_POSITION_PLUS1 = "position_plus1"

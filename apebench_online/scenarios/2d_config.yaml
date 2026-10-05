@@ -1,0 +1,655 @@
+pde_list:
+  advection:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      velocity: # the name has to be the arg name from the steper as it will be used like that
+        dim: 2
+        min: [-5.0, -5.0]
+        max: [5.0, 5.0]
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  diffusion:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity:
+        dim: 2
+        min: [0.005, 0.005]
+        max: [0.05, 0.05]
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  advection_diffusion:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      velocity:
+        dim: 2
+        min: [-5.0, -5.0]
+        max: [5.0, 5.0]
+      diffusivity:
+        dim: 2
+        min: [0.001, 0.001]
+        max: [0.03, 0.03]
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  dispersion:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      dispersivity:
+        dim: 2
+        min: [0.001, 0.001]
+        max: [0.015, 0.015]
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  hyper_diffusion:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      hyper_diffusivity:
+        dim: 1
+        min: 0.00005
+        max: 0.0005
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  burgers:
+    dim: 2
+    fields_scheme: "VV"
+    fields: ["Velocity X", "Velocity Y"]
+    domain_extent: 0.5
+    resolution: 512
+    ts: 30
+    ts_val: 50
+    dt: 0.01
+    substeps: 50
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity:
+        dim: 1
+        min: 0.0001
+        max: 0.0003
+        sampling_scale: "log"
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  korteweg_de_vries:
+    dim: 2
+    fields_scheme: "VV"
+    fields: ["Velocity X", "Velocity Y"]
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.05
+    substeps: 10
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      domain_extent:
+        dim: 1
+        min: 30.0
+        max: 120.0
+      diffusivity:
+        dim: 1
+        min: 0.00005
+        max: 0.001
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  kuramoto_sivashinsky:
+    dim: 2
+    fields_scheme: "d"
+    fields: ["Density"]
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 200
+    warmup_steps: 200
+    dt: 0.5
+    substeps: 5
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      domain_extent:
+        dim: 1
+        min: 10.0
+        max: 130.0
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  fisher_kpp:
+    dim: 2
+    fields_scheme: "c"
+    fields: ["Concentration"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.005
+    substeps: 1
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity:
+        dim: 1
+        min: 0.0001
+        max: 0.02
+      reactivity:
+        dim: 1
+        min: 5.0
+        max: 15.0
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+    ic_bounds: [0.0, 1.0]
+
+  gray_scott_alpha:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 100
+    warmup_steps: 75
+    dt: 30.0
+    substeps: 30
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.008
+      kill_rate:
+        dim: 1
+        value: 0.046
+
+    feed_kill_pairs:
+      - feed: 0.008
+        kill: 0.046
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_beta:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 100
+    warmup_steps: 50
+    dt: 30.0
+    substeps: 30
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.02
+      kill_rate:
+        dim: 1
+        value: 0.046
+      domain_extent: 
+        dim: 1
+        min: 0.5
+        max: 10.0
+    
+    feed_kill_pairs:
+      - feed: 0.02
+        kill: 0.046
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_gamma:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 100
+    warmup_steps: 70
+    dt: 75.0
+    substeps: 75
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.024
+      kill_rate:
+        dim: 1
+        value: 0.056
+
+    feed_kill_pairs:
+      - feed: 0.024
+        kill: 0.056
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_delta:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 130.0
+    substeps: 130
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.028
+      kill_rate:
+        dim: 1
+        value: 0.056
+
+    feed_kill_pairs:
+      - feed: 0.028
+        kill: 0.056
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_epsilon:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 100
+    warmup_steps: 300
+    dt: 15.0
+    substeps: 15
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.02
+      kill_rate:
+        dim: 1
+        value: 0.056
+
+    feed_kill_pairs:
+      - feed: 0.02
+        kill: 0.056
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_theta:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 200.0
+    substeps: 200
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.04
+      kill_rate:
+        dim: 1
+        value: 0.06
+
+    feed_kill_pairs:
+      - feed: 0.04
+        kill: 0.06
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_iota:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    domain_extent: 2.5
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 240.0
+    substeps: 240
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.05
+      kill_rate:
+        dim: 1
+        value: 0.0605
+
+    feed_kill_pairs:
+      - feed: 0.05
+        kill: 0.0605
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.2, 0.8]
+        complement_pair: true
+
+  gray_scott_kappa:
+    dim: 2
+    fields_scheme: "cb"
+    fields: ["Concentration A", "Concentration B"]
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    warmup_steps: 15
+    dt: 300.0
+    domain_extent: 2.5
+    substeps: 300
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity_1:
+        dim: 1
+        value: 0.00002
+      diffusivity_2:
+        dim: 1
+        value: 0.00001
+      feed_rate:
+        dim: 1
+        value: 0.052
+      kill_rate:
+        dim: 1
+        value: 0.063
+
+    feed_kill_pairs:
+      - feed: 0.052
+        kill: 0.063
+
+    initial_conditions:
+      gaussian_blobs:
+        num_blobs: 4
+        position_range: [0.4, 0.6]
+        complement_pair: true
+
+  swift_hohenberg:
+    dim: 2
+    fields_scheme: "c"
+    fields: ["Concentration"]
+    domain_extent: 62.83185307179586
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    dt: 0.5
+    substeps: 5
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      reactivity:
+        dim: 1
+        min: 0.4
+        max: 1.0
+      critical_number:
+        dim: 1
+        min: 0.8
+        max: 1.2
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+
+  navier_stokes_decaying_turbulence:
+    dim: 2
+    fields_scheme: "v"
+    fields: ["Vorticity"]
+    domain_extent: 1.0
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 200
+    dt: 3.0
+    substeps: 100
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity:
+        dim: 1
+        min: 0.00001
+        max: 0.0001
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+    solver_trajectory_batch_size: 32  # TODO: maximize GPU mem
+
+  navier_stokes_kolmogorov_flow:
+    dim: 2
+    fields_scheme: "v"
+    fields: ["Vorticity"]
+    domain_extent: 6.283185307179586
+    resolution: 2048
+    ts: 30
+    ts_val: 50
+    ts_test: 200
+    warmup_steps: 50
+    dt: 0.2
+    substeps: 100
+    boundary_conditions_order: ["x negative", "x positive", "y negative", "y positive"]
+    boundary_conditions: ["periodic", "periodic", "periodic", "periodic"]
+
+    physical_constant:
+      diffusivity:
+        dim: 1
+        min: 0.003
+        max: 0.008
+
+    initial_conditions:
+      truncated_fourier:
+        cutoff: [2,11]
+      gaussian_field:
+        pl_exponent: [2.3,3.6]
+      diffused_noise:
+        init_intensity: [0.00005,0.01]
+    solver_trajectory_batch_size: 32  # TODO: maximize GPU mem
