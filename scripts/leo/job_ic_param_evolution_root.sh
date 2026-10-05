@@ -20,17 +20,17 @@ if [ -z "$ROOT" ]; then
 fi
 
 
-: "${APEBENCH_ROOT:?export APEBENCH_ROOT=<repository> before sbatch}"
-source "$APEBENCH_ROOT/leo_melissa_init.sh" load
+: "${OGAS_ROOT:?export OGAS_ROOT=<repository> before sbatch}"
+source "$OGAS_ROOT/leo_melissa_init.sh" load
 
-SCRIPT="$APEBENCH_ROOT/scripts/analysis/parameter_generation_evolution.py"
+SCRIPT="$OGAS_ROOT/scripts/analysis/parameter_generation_evolution.py"
 if [ ! -f "$SCRIPT" ]; then
   echo "ERROR: $SCRIPT not found"
   exit 1
 fi
 
 if [ -z "$OUTPUT_ROOT" ]; then
-  OUTPUT_ROOT="$APEBENCH_ROOT/param_generation_evolution"
+  OUTPUT_ROOT="$OGAS_ROOT/param_generation_evolution"
 fi
 
 DDPM_NAME="ddpm_conf_ratio_proportional_normalized"

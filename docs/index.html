@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Built from the Academic Project Page Template (see footer). -->
+  <title>Learning Where to Simulate | NeurIPS 2026</title>
+  <meta name="title" content="Learning Where to Simulate: Generative Active Sampling for Online PDE Surrogate Training">
+  <meta name="description" content="OGAS trains a conditional diffusion model alongside a neural PDE surrogate to choose the next simulations during online training, lowering worst-case errors at the same simulation budget. NeurIPS 2026.">
+  <meta name="keywords" content="active learning, online training, neural PDE surrogates, diffusion models, scientific machine learning, Melissa">
+  <meta name="author" content="Pierre Cesar, Sofya Dymchenko, Abhishek Purandare, Bruno Raffin">
+  <meta name="robots" content="index, follow">
+
+  <link rel="canonical" href="https://melissa-sa.github.io/ogas/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Inria DataMove">
+  <meta property="og:title" content="Learning Where to Simulate (NeurIPS 2026)">
+  <meta property="og:description" content="Generative active sampling for online PDE surrogate training: lower worst-case errors at the same simulation budget.">
+  <meta property="og:url" content="https://melissa-sa.github.io/ogas/">
+  <meta property="og:image" content="https://melissa-sa.github.io/ogas/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The OGAS online loop: solvers, reservoir, surrogate and diffusion sampler">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Learning Where to Simulate (NeurIPS 2026)">
+  <meta name="twitter:description" content="Generative active sampling for online PDE surrogate training.">
+  <meta name="twitter:image" content="https://melissa-sa.github.io/ogas/assets/og.png">
+
+  <!-- Google Scholar -->
+  <meta name="citation_title" content="Learning Where to Simulate: Generative Active Sampling for Online PDE Surrogate Training">
+  <meta name="citation_author" content="Cesar, Pierre">
+  <meta name="citation_author" content="Dymchenko, Sofya">
+  <meta name="citation_author" content="Purandare, Abhishek">
+  <meta name="citation_author" content="Raffin, Bruno">
+  <meta name="citation_publication_date" content="2026">
+  <meta name="citation_conference_title" content="Advances in Neural Information Processing Systems (NeurIPS)">
+  <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2606.09949">
+  <meta name="theme-color" content="#1e293b">
+
+  <link rel="icon" type="image/svg+xml" href="static/images/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="static/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="static/images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="stylesheet" href="static/css/ogas.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "Learning Where to Simulate: Generative Active Sampling for Online PDE Surrogate Training",
+    "author": [
+      {"@type": "Person", "name": "Pierre Cesar"},
+      {"@type": "Person", "name": "Sofya Dymchenko"},
+      {"@type": "Person", "name": "Abhishek Purandare"},
+      {"@type": "Person", "name": "Bruno Raffin"}
+    ],
+    "datePublished": "2026",
+    "publisher": {"@type": "Organization", "name": "NeurIPS 2026"},
+    "sameAs": ["https://arxiv.org/abs/2606.09949", "https://github.com/melissa-sa/ogas"],
+    "url": "https://melissa-sa.github.io/ogas/",
+    "keywords": ["active learning", "online training", "neural PDE surrogates", "diffusion models"],
+    "isAccessibleForFree": true
+  }
+  </script>
+</head>
+<body>
+<main id="main-content">
+
+  <!-- Title, authors, links -->
+  <section class="hero">
+    <div class="hero-body publication-header-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">Learning Where to Simulate</h1>
+            <p class="subtitle is-4 publication-subtitle">Generative Active Sampling for Online PDE Surrogate Training</p>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><a href="https://www.linkedin.com/in/pierre-cesar-4b54a11b9/" target="_blank" rel="noopener">Pierre Cesar</a>,</span>
+              <span class="author-block"><a href="https://svdcvt.github.io/" target="_blank" rel="noopener">Sofya Dymchenko</a>,</span>
+              <span class="author-block"><a href="https://www.linkedin.com/in/abhishek-purandare/" target="_blank" rel="noopener">Abhishek Purandare</a>,</span>
+              <span class="author-block"><a href="https://datamove.imag.fr/bruno.raffin/" target="_blank" rel="noopener">Bruno Raffin</a></span>
+            </div>
+            <div class="is-size-6 publication-authors">
+              <span class="author-block">Univ. Grenoble Alpes, Inria, CNRS, Grenoble INP, LIG (DataMove team)</span>
+              <div class="publication-venue">NeurIPS 2026</div>
+            </div>
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2606.09949" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1h7l3 3v11H3V1zm6.5 1H4v12h8V4.5h-2.5V2zM5.5 7h5v1h-5V7zm0 2h5v1h-5V9zm0 2h3.5v1H5.5v-1z"/></svg></span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/melissa-sa/ogas" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg></span>
+                  <span>Code</span>
+                </a>
+              </span>
+              <!-- poster: link it here once it is on the NeurIPS virtual site -->
+              <span class="link-block">
+                <a class="external-link button is-normal is-rounded is-dark is-pending" aria-disabled="true">
+                  <span>Poster (soon)</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Teaser: the online loop -->
+    <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        
+        <div class="page-column section-lead" style="margin-top: 1.25rem;">
+          <p>
+            To generalize across many initial conditions and physical coefficients, a neural PDE surrogate needs
+            training simulations that cover the resulting dynamics. Drawn uniformly, these configuration parameters
+            leave the hardest regimes under-represented, and that is where the surrogate makes its largest errors.
+          </p>
+          <figure class="ogas-figure is-gif page-column">
+          <a href="assets/ogas_pipeline.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_pipeline.gif" width="1000" height="450"
+               alt="Step-by-step animation of the OGAS loop: solvers run simulations, stream them to the surrogate, whose training loss marks the hard simulations; a diffusion model learns where the loss is high and generates the next parameters there, 30 % staying uniform."></a>
+        </figure>
+          <p style="margin-top: 0.75rem;">
+            The <strong>Online Generative Active Sampler (OGAS)</strong> fixes this imbalance while the surrogate
+            trains. Simulations stream to the surrogate as they are produced. Alongside it, a fast diffusion model
+            learns to generate configuration parameters conditioned on a training difficulty signal (the loss or the
+            ensemble uncertainty). OGAS then asks it for high-difficulty configurations and sends them to the next
+            simulations. Unlike classical round-based active learning, sampling adapts continuously, without pausing
+            simulation or training.
+          </p>
+          <p style="margin-top: 0.75rem;">
+            On Kuramoto–Sivashinsky, Navier–Stokes and Gray–Scott, with several surrogate architectures and up to
+            308 configuration parameters, OGAS consistently lowers the 99th-percentile error and the spread of
+            errors compared with uniform sampling, at negligible wall-clock overhead.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Where the difficulty comes from -->
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="page-column">
+        <h2 class="title is-3 has-text-centered">Where the difficulty comes from</h2>
+        <p class="section-lead">
+          A simulation is defined by a physical coefficient and a parametrized initial condition. The coefficient alone
+          changes the dynamics qualitatively, so a uniform draw spends much of the budget where the surrogate is already
+          accurate. Each row shows one PDE at a low, a middle and a high value of its coefficient.
+        </p>
+        <div class="pde-row">
+          <div class="pde-text">
+            <h3 class="title is-5">Gray-Scott</h3>
+            <p>Reaction&ndash;diffusion of two chemicals. The <strong>domain size</strong> <em>L</em> &isin; [0.5, 10] goes from a few large spots to fine, ever-changing patterns.</p>
+            <p class="pde-ic">Initial condition: 8 Gaussian blobs (48 parameters).</p>
+          </div>
+          <figure class="ogas-figure pde-gif">
+            <img src="assets/gs_trajectories.gif" width="500" height="186" loading="lazy" alt="Gray-Scott reaction-diffusion at three domain sizes.">
+          </figure>
+        </div>
+        <div class="pde-row">
+          <div class="pde-text">
+            <h3 class="title is-5">Kuramoto&ndash;Sivashinsky</h3>
+            <p>Chaotic dynamics. A larger <strong>domain size</strong> <em>L</em> &isin; [10, 130] packs more and smaller cells into the same 256&times;256 grid.</p>
+            <p class="pde-ic">Initial condition: truncated Fourier series (308 parameters).</p>
+          </div>
+          <figure class="ogas-figure pde-gif">
+            <img src="assets/ks_trajectories.gif" width="500" height="186" loading="lazy" alt="Kuramoto-Sivashinsky at three domain sizes, with more and smaller cells as the domain grows.">
+          </figure>
+        </div>
+        <div class="pde-row">
+          <div class="pde-text">
+            <h3 class="title is-5">Kolmogorov flow</h3>
+            <p>Forced 2D turbulence (Navier&ndash;Stokes). The <strong>viscosity</strong> &nu; &isin; [0.003, 0.008] (Reynolds 125&ndash;330) changes the dynamics more subtly.</p>
+            <p class="pde-ic">Initial condition: truncated Fourier series (308 parameters).</p>
+          </div>
+          <figure class="ogas-figure pde-gif">
+            <img src="assets/ns_trajectories.gif" width="500" height="186" loading="lazy" alt="Kolmogorov flow vorticity at three viscosities.">
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What OGAS samples -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="page-column">
+        <h2 class="title is-3 has-text-centered">What OGAS samples</h2>
+        <p class="section-lead">
+          Each simulation receives a difficulty score during training: the normalized training loss (OGAS-Loss) or the
+          disagreement of an ensemble of two surrogates (OGAS-Uncertainty). A conditional DDPM learns from the recent
+          (parameters, score) pairs and generates parameters for high target difficulties. Their share grows to 70 %; the
+          rest stays uniform.
+        </p>
+        <figure class="ogas-figure is-gif">
+          <a href="assets/ogas_sampling_3pde.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_sampling_3pde.gif" width="1665" height="585" loading="lazy"
+               alt="Parameters requested by OGAS generation after generation on the three PDEs, spreading uniformly at first and then concentrating on specific regions."></a>
+          <figcaption>Each point is a simulation requested during one training run, colored by generation. Axes: mean blob
+            position (Gray-Scott), energy and first Fourier amplitude (Kuramoto-Sivashinsky), first two Fourier amplitudes
+            (Kolmogorov flow) of the initial condition.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="page-column">
+        <h2 class="title is-3 has-text-centered">Results</h2>
+        <p class="section-lead">
+          OGAS is compared with uniform and Sobol sampling, pool-based active learning (SBAL, Top-K) and an online
+          Gaussian-mixture sampler (Breed), all at the same simulation budget and the same number of gradient steps.
+        </p>
+        <div class="columns is-multiline is-mobile scope">
+          <div class="column is-half-mobile is-3-tablet"><div class="box has-text-centered"><div class="stat">3</div><div class="stat-label">2D PDEs, 256×256</div></div></div>
+          <div class="column is-half-mobile is-3-tablet"><div class="box has-text-centered"><div class="stat">3</div><div class="stat-label">architectures, 2.3M to 184M parameters</div></div></div>
+          <div class="column is-half-mobile is-3-tablet"><div class="box has-text-centered"><div class="stat">189</div><div class="stat-label">online runs, 3 seeds each</div></div></div>
+          <div class="column is-half-mobile is-3-tablet"><div class="box has-text-centered"><div class="stat">10,000</div><div class="stat-label">simulations per run</div></div></div>
+        </div>
+        <figure class="ogas-figure">
+          <div class="plate">
+            <img src="assets/figures/results_bars.svg" width="800" height="360"
+                 alt="Error of Uniform divided by error of OGAS-Loss, per PDE, for the maximum, 99th percentile, standard deviation and mean of the one-step normalized RMSE: 1.25 to 1.92 on the first three, 0.89 to 1.05 on the mean.">
+          </div>
+          <figcaption>Above 1 means a lower error than Uniform. OGAS-Loss, one-step normalized RMSE on 750 held-out
+            trajectories, averaged over 3 architectures &times; 3 seeds (paper, Table 8). OGAS-Unc gives similar gains
+            (1.32&times; on P99, 1.50&times; on the std, averaged over the PDEs).</figcaption>
+        </figure>
+        <p class="section-lead" style="margin-top: 1rem;">
+          The gain is concentrated in the tail: the worst errors and their spread shrink, at a small cost on the mean
+          error, which a uniformly drawn validation set weighs towards easy regimes. SBAL, Top-K and Sobol give smaller or
+          inconsistent gains.
+        </p>
+        <figure class="ogas-figure">
+          <div class="plate">
+            <a href="assets/figures/results_ratios.png" target="_blank" rel="noopener" title="Open full size"><img src="assets/figures/results_ratios.png" width="2000" height="919" loading="lazy"
+                 alt="Improvement ratios over Uniform for the mean, maximum, 99th percentile and standard deviation of the error, per PDE, method and architecture."></a>
+          </div>
+          <figcaption>Improvement ratios over Uniform per PDE (rows) and error statistic (columns); marker shape is the
+            architecture, faint points are the three seeds and bold points their average.</figcaption>
+        </figure>
+
+        <div class="columns is-vcentered" style="margin-top: 2rem;">
+          <div class="column is-7">
+            <h3 class="title is-5">Where the gain comes from</h3>
+            <p>
+              The full error distributions show where the gain comes from: OGAS and Uniform match on most validation
+              samples, but OGAS makes far fewer large errors, with the density of the high-error tail dropping by
+              orders of magnitude reducing the risk of a high step error.
+            </p>
+          </div>
+          <div class="column is-5">
+            <figure class="ogas-figure" style="margin-top: 0;">
+              <div class="plate">
+                <a href="assets/figures/loss_distribution_1d.png" target="_blank" rel="noopener" title="Open full size"><img src="assets/figures/loss_distribution_1d.png" width="1014" height="814" loading="lazy"
+                     alt="Error distributions of OGAS and Uniform on 1D KdV and Kuramoto-Sivashinsky, overlapping in the bulk and separating in the high-error tail."></a>
+              </div>
+              <figcaption>Error distributions over seeds, 1D KdV and KS.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Debiasing -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="page-column">
+        <h2 class="title is-3 has-text-centered">Debiasing the sampler</h2>
+        <p class="section-lead">
+          Because of the online closed loop, the DDPM end up learning from simulations it chosed itself, so its training history over-represents the regions it already
+          favored. The role of the classifier is to estimates how much denser the history is than a uniform draw, and the DDPM's training
+          examples are weighted by the inverse ratio so that it mitigates the closed loop and ddpm train under a uniform prior.
+        </p>
+        <figure class="ogas-figure is-gif">
+          <a href="assets/ogas_debiasing.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_debiasing.gif" width="1000" height="420" loading="lazy"
+               alt="Step-by-step animation of the density-ratio correction: the history over-represents the regions OGAS sampled, a classifier against uniform draws gives each point a weight, and the reweighted history lets the generator learn a near-uniform prior."></a>
+          <figcaption>Illustration on synthetic 2D data: w(λ) = D<sub>ψ</sub>(λ) / (1 − D<sub>ψ</sub>(λ)) estimates the
+            ratio between the uniform density and the density of the history.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cost and limitations -->
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="page-column content">
+        <h2 class="title is-3 has-text-centered">Cost and limitations</h2>
+        <p>
+          OGAS runs asynchronously on its own GPU and works only in parameter space, so its cost does not grow with the
+          field resolution. Sending the training signals adds about 23&nbsp;s to a run (0.2&nbsp;% of its wall time), whereas
+          pool-based methods pause simulation and training to score their candidates.
+        </p>
+        <ul>
+          <li>The mean error is slightly higher than with uniform sampling in several settings, mostly for the smaller
+            UNet and FNO on Kuramoto-Sivashinsky and Gray-Scott.</li>
+          <li>OGAS used one extra GPU; sharing the surrogate's GPU is possible but was not evaluated at a fixed compute
+            budget.</li>
+          <li>2D results use three seeds per setting, and there is no theory yet for online active learning of nonlinear
+            surrogates.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Poster: uncomment once static/pdfs/poster.pdf exists
+  <section class="hero is-small is-light">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <h2 class="title is-3 has-text-centered">Poster</h2>
+        <iframe src="static/pdfs/poster.pdf" width="100%" height="550"></iframe>
+      </div>
+    </div>
+  </section>
+  -->
+  <!-- Code -->
+  <!-- Putting installation may not be a good idea as github readme already has the same. -->
+  <!-- <section class="section hero is-light" id="code">
+    <div class="container is-max-desktop">
+      <div class="page-column content">
+        <h2 class="title is-3 has-text-centered">Get the code</h2>
+        <p class="section-lead">
+          OGAS is built on the <a href="https://gitlab.inria.fr/melissa/melissa" target="_blank" rel="noopener">Melissa</a>
+          online-training framework. On Linux with uv, an MPI library and ZeroMQ:
+        </p>
+        <pre class="code-block"><code>git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
+uv venv --python 3.11 && source .venv/bin/activate
+uv pip install -r frozen_requirements.txt
+uv pip install --no-deps -e . "./melissa[launcher,server,torch]"</code></pre>
+        <p>
+          The <a href="https://github.com/melissa-sa/ogas#quick-start-one-experiment" target="_blank" rel="noopener">README</a>
+          then walks through one experiment: generating its config, running it locally or with Slurm, and following it
+          on Weights &amp; Biases.
+        </p>
+      </div>
+    </div>
+  </section> -->
+  <!-- BibTeX -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <div class="page-column">
+        <div class="bibtex-header">
+          <h2 class="title">BibTeX</h2>
+          <button class="copy-bibtex-btn" type="button" id="copy-bibtex" title="Copy BibTeX to clipboard">
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+        <pre id="bibtex-code"><code>@inproceedings{cesar2026learning,
+  title     = {Learning Where to Simulate: Generative Active Sampling for Online {PDE} Surrogate Training},
+  author    = {Cesar, Pierre and Dymchenko, Sofya and Purandare, Abhishek and Raffin, Bruno},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  keywords  = {active learning, online training, surrogate modeling, partial differential equations, generative models},
+  pages     = {1--10},
+  month     = dec,
+  year      = {2026},
+  address   = {Paris, France}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p class="footer-contact">
+            Contact: <a href="mailto:pierre.cesar@inria.fr">pierre.cesar@inria.fr</a>
+          </p>
+          <div class="footer-logos">
+            <a href="https://www.inria.fr" target="_blank" rel="noopener"><img src="assets/logos/inria.svg" alt="Inria"></a>
+            <a href="https://www.univ-grenoble-alpes.fr" target="_blank" rel="noopener"><img src="assets/logos/uga.svg" alt="Université Grenoble Alpes"></a>
+            <a href="https://www.liglab.fr" target="_blank" rel="noopener"><img src="assets/logos/lig.svg" alt="LIG"></a>
+          </div>
+          <p>
+            Supported by the Exa-DoST project of the NumPEx PEPR program (France 2030, ANR-22-EXNU-0004) and the EU Horizon
+            programme (EoCoE-III, grant No 101144014). Experiments ran on the EuroHPC supercomputer Leonardo (CINECA).
+          </p>
+          <p>
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noopener">Academic Project Page Template</a>,
+            which was adopted from the <a href="https://nerfies.github.io" target="_blank" rel="noopener">Nerfies</a> project page.
+            This website is licensed under a <a rel="license noopener" href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("copy-bibtex").addEventListener("click", function () {
+    var btn = this, label = btn.querySelector(".copy-text"), code = document.getElementById("bibtex-code");
+    var done = function (text) { label.textContent = text; setTimeout(function () { label.textContent = "Copy"; }, 1800); };
+    var select = function () {
+      var range = document.createRange(); range.selectNodeContents(code);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      done("Selected");
+    };
+    try { navigator.clipboard.writeText(code.textContent).then(function () { done("Copied"); }, select); }
+    catch (e) { select(); }
+  });
+</script>
+</body>
+</html>

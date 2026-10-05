@@ -7,7 +7,7 @@ __pycache__/
 *.so
 *.pdf
 *metrics*
-!apebench_online/validation/external_validation/metrics.py
+!ogas/validation/external_validation/metrics.py
 # Distribution / packaging
 .Python
 build/
@@ -44,8 +44,6 @@ dmypy.json
 .idea/
 
 # Outputs and artifacts
-*.gif
-!docs/assets/*.gif
 *.npy
 *.npz
 std/
@@ -58,7 +56,7 @@ best_metrics*/
 venv/
 ENV/
 env/
-.melissa-apebench-venv/
+.melissa-ogas-venv/
 
 # Snakemake
 logs/
@@ -109,7 +107,6 @@ Thumbs.db
 /experiments/
 .venv
 # not part of the release
-/docs/
 /scripts/analysis/benchmark_gflops_2d.py
 /scripts/leo/job_benchmark_gflops_2d.sh
 /scripts/analysis/characterize_valsets.py

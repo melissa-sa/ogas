@@ -9,7 +9,7 @@
 set -uo pipefail
 if [ -z "${SLURM_JOB_ID:-}" ]; then
   config=$(realpath "$1"); tag=$2; shift 2
-  export APEBENCH_ROOT=${APEBENCH_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
+  export OGAS_ROOT=${OGAS_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
   gpus=$(python3 -c "import json, sys; c = json.load(open(sys.argv[1])); t = c['dl_config']['torch_model']
 print(int(t.get('n_models', 2 if t.get('use_ensemble') else 1)) + int(bool(c.get('campaign_metadata', {}).get('sampler_gpu'))))" "$config")
   nodes=$(( (gpus + 3) / 4 )); gpn=$(( (gpus + nodes - 1) / nodes ))
@@ -20,7 +20,7 @@ fi
 config_file=$1; tag=$2
 unset LD_LIBRARY_PATH PYTHONPATH PKG_CONFIG_PATH
 export PATH="$HOME/.local/bin:$PATH"
-source "$APEBENCH_ROOT/leo_melissa_init.sh" load
+source "$OGAS_ROOT/leo_melissa_init.sh" load
 export LD_LIBRARY_PATH="$MELISSA_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 out_dir=$(python -c "import json,sys; print(json.load(open(sys.argv[1]))['output_dir'])" "$config_file")
 ckpt=$out_dir/checkpoints

@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 import pandas as pd
 
-from apebench_online.scenarios import get_pde_config
-from apebench_online.scenarios.physics_ic_utils import (
+from ogas.scenarios import get_pde_config
+from ogas.scenarios.physics_ic_utils import (
     build_minimal_ic_config,
     build_param_layout,
     full_bounds_from_layout,

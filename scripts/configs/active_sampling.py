@@ -196,7 +196,7 @@ class ActiveSamplingConfig:
                     "activate_breed": True,
                     "start_breed_ratio": 0.0,
                     "max_epoch_per_epoch": 50,
-                    "max_mlp_steps_per_collect": 4,
+                    "max_mlp_steps_per_collect": 10**9,
                     "end_breed_ratio": 0.7,
                     "loss_sampling_strategy": "proportional",
                     "learn_sampling_ratio": True,
