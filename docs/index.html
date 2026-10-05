@@ -37,7 +37,7 @@
   <meta name="citation_conference_title" content="Advances in Neural Information Processing Systems (NeurIPS)">
   <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2606.09949">
   <meta name="theme-color" content="#1e293b">
-  
+
   <link rel="icon" type="image/svg+xml" href="static/images/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="static/images/favicon-32.png">
   <link rel="apple-touch-icon" href="static/images/apple-touch-icon.png">
@@ -119,16 +119,17 @@
     <section class="hero teaser">
     <div class="container is-max-desktop">
       <div class="hero-body">
-        <figure class="ogas-figure is-gif page-column">
-          <a href="assets/ogas_pipeline.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_pipeline.gif" width="1000" height="450"
-               alt="Step-by-step animation of the OGAS loop: solvers run simulations, stream them to the surrogate, whose training loss marks the hard simulations; a diffusion model learns where the loss is high and generates the next parameters there, 30 % staying uniform."></a>
-        </figure>
+        
         <div class="page-column section-lead" style="margin-top: 1.25rem;">
           <p>
             To generalize across many initial conditions and physical coefficients, a neural PDE surrogate needs
             training simulations that cover the resulting dynamics. Drawn uniformly, these configuration parameters
             leave the hardest regimes under-represented, and that is where the surrogate makes its largest errors.
           </p>
+          <figure class="ogas-figure is-gif page-column">
+          <a href="assets/ogas_pipeline.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_pipeline.gif" width="1000" height="450"
+               alt="Step-by-step animation of the OGAS loop: solvers run simulations, stream them to the surrogate, whose training loss marks the hard simulations; a diffusion model learns where the loss is high and generates the next parameters there, 30 % staying uniform."></a>
+        </figure>
           <p style="margin-top: 0.75rem;">
             The <strong>Online Generative Active Sampler (OGAS)</strong> fixes this imbalance while the surrogate
             trains. Simulations stream to the surrogate as they are produced. Alongside it, a fast diffusion model
