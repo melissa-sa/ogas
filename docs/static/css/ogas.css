@@ -1,0 +1,66 @@
+/* OGAS project page: overrides of the Academic Project Page Template (index.css).
+   Same template look (white ground, Inter, dark rounded buttons), with the orange of the
+   generated samples as accent, and every text block and figure on one column width so that
+   figures never dwarf the text. */
+:root {
+  --primary-color: #c2410c;
+  --primary-hover: #9a3412;
+  --gradient-accent: #f0913f;
+  --column: 50rem;         /* shared width of text and figures */
+  --gif-ground: #0d1117;   /* background of the animations */
+}
+
+.publication-title { margin-bottom: 0.75rem !important; }
+.publication-subtitle { color: var(--text-secondary); font-weight: 500; margin-top: 0.75rem !important; margin-bottom: 1.75rem !important; }
+.publication-header-body { padding-bottom: 1rem !important; }
+.teaser .hero-body { padding-top: 1rem; }
+.publication-venue { margin: 0.75rem auto 0; }
+
+.page-column { max-width: var(--column); margin: 0 auto; }
+
+.content.has-text-justified { text-align: left !important; color: var(--text-primary); }
+.content.has-text-justified p { margin-bottom: 1rem; }
+.section-lead { font-size: 1.05rem; line-height: 1.7; color: var(--text-primary); }
+
+/* figures: at most the column width; natural size when smaller */
+.ogas-figure { margin: 1.5rem auto 0; }
+.ogas-figure img { display: block; width: 100%; height: auto; border-radius: 10px; }
+.ogas-figure.is-narrow { max-width: 628px; }
+.ogas-figure.is-gif img { background: var(--gif-ground); }
+.ogas-figure figcaption {
+  margin-top: 0.6rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); text-align: left;
+}
+.pde-label {
+  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-secondary); margin: 1.25rem 0 0.4rem;
+}
+.plate { background: #fff; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem; }
+
+/* results */
+.scope { margin: 1.25rem 0 0.5rem; }
+.scope .column { padding: 0.5rem; }
+.scope .box { box-shadow: none; border: 1px solid var(--border-color); padding: 0.9rem 0.75rem; height: 100%; }
+.scope .stat { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.scope .stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+.table-container { margin-top: 1.25rem; }
+.table td, .table th { vertical-align: middle; }
+.table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table tr.is-ogas td:first-child { font-weight: 600; }
+.table-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.4rem; }
+
+.button .icon svg { width: 1em; height: 1em; fill: currentColor; }
+.button.is-pending { opacity: 0.55; pointer-events: none; }
+
+.ogas-figure a { display: block; }
+
+@media screen and (max-width: 768px) {
+  .section-lead { font-size: 1rem; }
+  .ogas-figure { margin-top: 1rem; }
+  .publication-subtitle { font-size: 1.15rem !important; }
+}
+/* phones: two link buttons per row instead of one full-width button per row */
+@media screen and (max-width: 480px) {
+  .publication-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .publication-links .link-block { display: block; margin: 0; }
+  .publication-links .button { width: 100%; margin: 0 !important; }
+}
