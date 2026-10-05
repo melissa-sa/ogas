@@ -16,10 +16,13 @@ Univ. Grenoble Alpes, Inria, CNRS, Grenoble INP, LIG (DataMove team) · **NeurIP
 
 <p align="center"><img src="docs/assets/ogas_pipeline.gif" width="860" alt="The OGAS online loop, step by step"></p>
 
-Neural PDE surrogates trained on uniformly sampled simulations are accurate on average but make their largest errors
-in the hardest regimes. In online training, simulations stream to the surrogate while it trains, so the next ones
-can target those regimes. **OGAS** does this with a small diffusion model trained alongside the surrogate: it learns
-which solver parameters are currently hard and generates the next ones, mixed with uniform draws.
+To generalize across many initial conditions and physical coefficients, a neural PDE surrogate needs training
+simulations that cover the resulting dynamics; drawn uniformly, these configuration parameters leave the hardest
+regimes under-represented, and that is where the surrogate makes its largest errors. The **Online Generative Active
+Sampler (OGAS)** fixes this imbalance while the surrogate trains: alongside it, a fast diffusion model learns to
+generate configuration parameters conditioned on a training difficulty signal (loss or uncertainty), and OGAS sends
+high-difficulty configurations to the next simulations. Unlike round-based active learning, sampling adapts
+continuously, without pausing simulation or training.
 
 On 3 PDEs × 3 architectures (189 runs of 10,000 simulations), at the same simulation budget as uniform sampling:
 

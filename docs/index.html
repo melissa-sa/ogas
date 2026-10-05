@@ -119,19 +119,33 @@
   </section>
 
   <!-- Teaser: the online loop -->
-  <section class="hero teaser">
+    <section class="hero teaser">
     <div class="container is-max-desktop">
       <div class="hero-body">
         <figure class="ogas-figure is-gif page-column">
           <a href="assets/ogas_pipeline.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_pipeline.gif" width="1000" height="450"
                alt="Step-by-step animation of the OGAS loop: solvers run simulations, stream them to the surrogate, whose training loss marks the hard simulations; a diffusion model learns where the loss is high and generates the next parameters there, 30 % staying uniform."></a>
         </figure>
-        <p class="page-column section-lead" style="margin-top: 1.25rem;">
-          Neural PDE surrogates trained on uniformly sampled simulations are accurate on average, but their largest errors
-          sit in the regimes that uniform sampling rarely visits. When simulations stream to the surrogate while it trains,
-          the next ones can be chosen: <strong>OGAS</strong> trains a small diffusion model alongside the surrogate that
-          learns which parameters are currently hard and sends the solvers there, without pausing simulation or training.
-        </p>
+        <div class="page-column section-lead" style="margin-top: 1.25rem;">
+          <p>
+            To generalize across many initial conditions and physical coefficients, a neural PDE surrogate needs
+            training simulations that cover the resulting dynamics. Drawn uniformly, these configuration parameters
+            leave the hardest regimes under-represented, and that is where the surrogate makes its largest errors.
+          </p>
+          <p style="margin-top: 0.75rem;">
+            The <strong>Online Generative Active Sampler (OGAS)</strong> fixes this imbalance while the surrogate
+            trains. Simulations stream to the surrogate as they are produced. Alongside it, a fast diffusion model
+            learns to generate configuration parameters conditioned on a training difficulty signal (the loss or the
+            ensemble uncertainty). OGAS then asks it for high-difficulty configurations and sends them to the next
+            simulations. Unlike classical round-based active learning, sampling adapts continuously, without pausing
+            simulation or training.
+          </p>
+          <p style="margin-top: 0.75rem;">
+            On Kuramoto–Sivashinsky, Navier–Stokes and Gray–Scott, with several surrogate architectures and up to
+            308 configuration parameters, OGAS consistently lowers the 99th-percentile error and the spread of
+            errors compared with uniform sampling, at negligible wall-clock overhead.
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -269,9 +283,9 @@
       <div class="page-column">
         <h2 class="title is-3 has-text-centered">Debiasing the sampler</h2>
         <p class="section-lead">
-          The DDPM learns from simulations it chose itself, so its training history over-represents the regions it already
-          favored. A classifier estimates how much denser the history is than a uniform draw, and the DDPM's training
-          examples are weighted by the inverse ratio.
+          Because of the online closed loop, the DDPM end up learning from simulations it chosed itself, so its training history over-represents the regions it already
+          favored. The role of the classifier is to estimates how much denser the history is than a uniform draw, and the DDPM's training
+          examples are weighted by the inverse ratio so that it mitigates the closed loop and ddpm train under a uniform prior.
         </p>
         <figure class="ogas-figure is-gif">
           <a href="assets/ogas_debiasing.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_debiasing.gif" width="1000" height="420" loading="lazy"
