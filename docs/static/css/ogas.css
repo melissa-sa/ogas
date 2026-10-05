@@ -7,7 +7,7 @@
   --primary-hover: #9a3412;
   --gradient-accent: #f0913f;
   --column: 50rem;         /* shared width of text and figures */
-  --gif-ground: #0d1117;   /* background of the animations */
+  --gif-ground: #ffffff;   /* background of the animations (paper style) */
 }
 
 .publication-title { margin-bottom: 0.75rem !important; }
@@ -30,10 +30,14 @@
 .ogas-figure figcaption {
   margin-top: 0.6rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); text-align: left;
 }
-.pde-label {
-  font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--text-secondary); margin: 1.25rem 0 0.4rem;
-}
+/* "Where the difficulty comes from": one row per PDE, text next to its animation */
+.pde-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 500px); gap: 1.5rem; align-items: center;
+  margin-top: 1.75rem; }
+.pde-row .title { margin-bottom: 0.4rem; }
+.pde-text p { font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 0.4rem; }
+.pde-text .pde-ic { font-size: 0.85rem; color: var(--text-secondary); }
+.ogas-figure.pde-gif { margin: 0; }
+.ogas-figure.pde-gif img { border-radius: 4px; }
 .plate { background: #fff; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem; }
 
 /* results */
@@ -54,6 +58,7 @@
 .ogas-figure a { display: block; }
 
 @media screen and (max-width: 768px) {
+  .pde-row { grid-template-columns: 1fr; gap: 0.6rem; }
   .section-lead { font-size: 1rem; }
   .ogas-figure { margin-top: 1rem; }
   .publication-subtitle { font-size: 1.15rem !important; }

@@ -3,26 +3,22 @@ import sys
 
 import numpy as np
 import matplotlib
+import matplotlib.font_manager
 from PIL import Image, ImageDraw, ImageFont
 
 DATA, OUT = sys.argv[1], sys.argv[2]
 os.makedirs(OUT, exist_ok=True)
 
-BG = np.array([13, 17, 23])
-FG = np.array([201, 209, 217])
-DIM = np.array([139, 148, 158])
+BG = np.array([255, 255, 255])  # paper style: white ground, serif labels
+FG = np.array([0, 0, 0])
+DIM = np.array([85, 85, 85])
 LEVELS = 32
 SIZE = 192
 FPS = 12
 HOLD_LAST, HOLD_FIRST = 700, 350
 FADE = 5
-try:
-    FONT = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 13)
-except OSError:
-    try:
-        FONT = ImageFont.truetype("DejaVuSans.ttf", 13)
-    except OSError:
-        FONT = ImageFont.load_default()
+FONT = ImageFont.truetype(matplotlib.font_manager.findfont(matplotlib.font_manager.FontProperties(
+    family=["Times New Roman", "Times", "Liberation Serif", "STIXGeneral"])), 15)
 PDES = {
     "gs": ("Gray-Scott", 1, "magma", False, "L = {:.1f}"),
     "ks": ("Kuramoto-Sivashinsky", 0, "viridis", True, "L = {:.0f}"),

@@ -77,8 +77,8 @@ def hard(x, y):
     """Illustrative difficulty landscape on the unit square, in [0, 1]."""
     a = 0.7
     u, v = (x - 0.70) * np.cos(a) + (y - 0.66) * np.sin(a), -(x - 0.70) * np.sin(a) + (y - 0.66) * np.cos(a)
-    g = np.exp(-u ** 2 / (2 * 0.16 ** 2) - v ** 2 / (2 * 0.075 ** 2))
-    g += 0.6 * np.exp(-((x - 0.24) ** 2 + (y - 0.27) ** 2) / (2 * 0.065 ** 2))
+    g = np.exp(-u ** 2 / (2 * 0.2 ** 2) - v ** 2 / (2 * 0.1 ** 2))
+    g += 0.6 * np.exp(-((x - 0.24) ** 2 + (y - 0.27) ** 2) / (2 * 0.08 ** 2))
     return np.clip(g, 0.0, 1.0)
 
 
@@ -138,9 +138,9 @@ caught_up = False
 packets = []       # moving glyphs: kind, t0, t1, path, color, extra
 batches = []       # OGAS generations: t0, targets, starts
 pulses, outs = [], []
-spawn_t = [0.35 + 0.27 * i for i in range(12)]
+spawn_t = [0.3 + 0.3 * i for i in range(8)]
 next_spawn = 0.0
-gen_t = [T[4] + 0.4, T[5] + 0.3, T[5] + 2.2, T[5] + 4.1]
+gen_t = [T[4] + 0.4] + [T[5] - 1.2 + 1.3 * i for i in range(6)]
 
 
 def add_dot(x, y, kind, t):
@@ -163,9 +163,9 @@ for k, t in enumerate(times):
     while spawn_t and spawn_t[0] <= t:
         spawn_t.pop(0)
         add_dot(*rng.random(2), "uni", t)
-    if T[1] <= t < T[4] + 2.4 and len(queue) < 2 and t >= next_spawn:
+    if T[1] <= t < T[5] and not queue and t >= next_spawn:
         add_dot(*rng.random(2), "uni", t)
-        next_spawn = t + 0.5
+        next_spawn = t + 0.25
     while gen_t and gen_t[0] <= t:
         t0 = gen_t.pop(0)
         n = 7 if t0 < T[5] else 5
@@ -196,15 +196,16 @@ for k, t in enumerate(times):
             p1 = (TH_X - 4, LANES_Y[li])
             packets.append(dict(kind="dot", t0=t, t1=t + 0.5, path=Path(bezier(p0, (300, p0[1]), p1)),
                                 color=UNI if d["kind"] == "uni" else GEN, extra=None))
-            ln.update(dot=i, t0=t + 0.5, dur=float(rng.uniform(2.3, 3.1)), panel=min(int(d["x"] * 3), 2),
+            ln.update(dot=i, t0=t + 0.5, dur=float(rng.uniform(1.5, 2.1)), panel=min(int(d["x"] * 3), 2),
                       next_emit=t + 0.9, t_free=t + 0.5)
         if ln["dot"] is not None and s >= 1 and t >= ln["t0"] and t >= ln["next_emit"]:
             ln["next_emit"] = t + 0.45
             y0 = LANES_Y[li]
-            packets.append(dict(kind="sq", t0=t, t1=t + 0.55, path=Path(bezier((BAR_X1 + 4, y0), (540, y0), (NET_X[0] - 8, MID))),
+            route = [(BAR_X1 + 6, y0), (PANELS["B"][2] + 12, y0), (PANELS["B"][2] + 12, MID), (NET_X[0] - 10, MID)]
+            packets.append(dict(kind="sq", t0=t, t1=t + 0.6, path=Path(route),
                                 color=UNI if dots[ln["dot"]]["kind"] == "uni" else GEN, extra=None))
-            pulses.append(t + 0.55)
-    lane_state.append([None if ln["dot"] is None or t < ln["t0"] else
+            pulses.append(t + 0.6)
+    lane_state.append([None if ln["dot"] is None else (0.0, ln["panel"], dots[ln["dot"]]["kind"]) if t < ln["t0"] else
                        (min((t - ln["t0"]) / ln["dur"], 1.0), ln["panel"], dots[ln["dot"]]["kind"]) for ln in lanes])
 
 # ---------------------------------------------------------------- static drawing
@@ -257,7 +258,7 @@ for la, lb in zip(nodes[:-1], nodes[1:]):
         for b in lb:
             edges.append(ax.plot([a[0], b[0]], [a[1], b[1]], lw=0.9, color=EDGE, zorder=2)[0])
 node_art = [ax.add_patch(Circle(p, 5, fc=NODE_FILL, ec=NODE_EDGE, lw=1.1, zorder=3)) for layer in nodes for p in layer]
-ax.text((PANELS["C"][0] + PANELS["C"][2]) / 2, PANELS["C"][3] - 22, "learns to predict the next step",
+ax.text((PANELS["C"][0] + PANELS["C"][2]) / 2, PANELS["C"][3] - 22, "predicts the next time step",
         fontsize=10.5, color=DIM, ha="center", va="center")
 # generator
 rbox(DM, fc=INNER, ec="none", r=4, z=1)
@@ -348,8 +349,8 @@ def render(k):
         if d["t_score"] is not None and t >= d["t_score"]:
             hv = float(ease((t - d["t_score"]) / 0.5))
             hxy.append(p)
-            hs.append((7 + 15 * d["d"]) ** 2 * hv)
-            hc.append(matplotlib.colors.to_rgba(HOT, (0.08 + 0.5 * d["d"]) * hv))
+            hs.append((6 + 18 * d["d"]) ** 2 * hv)
+            hc.append(matplotlib.colors.to_rgba(HOT, (0.05 + 0.55 * d["d"]) * hv))
         cols[-1] = matplotlib.colors.to_rgba(cols[-1], pop)
     dot_sc.set_offsets(np.array(xy) if xy else np.empty((0, 2)))
     dot_sc.set_facecolors(cols if cols else [(0, 0, 0, 0)])

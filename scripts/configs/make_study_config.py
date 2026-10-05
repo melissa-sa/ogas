@@ -52,11 +52,13 @@ def main():
     ap.add_argument("--signal", choices=["uncertainty", "ecrps"], help="ensemble signal fed to the breeder")
     ap.add_argument("--train-ranks", type=int, help="training ranks the members are spread over (default: one per member)")
     ap.add_argument("--sampler-gpu", action="store_true", help="give the DDPM sampler its own GPU (job_study.sh)")
-    ap.add_argument("--clients", type=int, help="persistent clients (default: 8 per member)")
+    ap.add_argument("--clients", type=int, help="concurrent solvers (default: 8 per member; offline: one per CPU core)")
     ap.add_argument("--wandb-group", help="W&B group (default: the source group, with the signal and _M<m>)")
     a = ap.parse_args()
 
     cfg = json.loads(re.sub(r",(\s*[}\]])", r"\1", open(a.src).read()))
+    if "dl_config" not in cfg:  # offline (validation-set) config: no training, CPU clients only
+        return offline(cfg, a)
     port_legacy(cfg)
     tm, dl = cfg["dl_config"]["torch_model"], cfg["dl_config"]
     tm.pop("distribute_on_gpus", None)
@@ -102,6 +104,26 @@ def main():
         f"{cfg['study_options'].get('seed')}")
     if a.sampler_gpu:
         cfg["campaign_metadata"]["sampler_gpu"] = True
+    json.dump(cfg, open(a.out, "w"), indent=2)
+    print("wrote", a.out)
+
+
+def offline(cfg, a):
+    lc = cfg["launcher_config"]
+    lc.update({
+        "std_output": True, "scheduler": "openmpi", "protocol": "tcp",
+        "scheduler_server_command": WRAPPER, "scheduler_client_command": WRAPPER,
+        "scheduler_server_command_options": ["--server"],
+        "scheduler_arg_server": ["-n", "1"], "scheduler_arg_client": ["-n", "1"],
+        "job_limit": a.clients or os.cpu_count(),
+    })
+    srv = cfg.setdefault("server_config", {}).setdefault("preprocessing_commands", [])
+    srv[:] = [UNSET_SLURM] + [c for c in srv if c != UNSET_SLURM]
+    cli = cfg["client_config"].setdefault("preprocessing_commands", [])
+    cfg["client_config"]["preprocessing_commands"] = SINGLE_THREAD + [c for c in cli if c not in SINGLE_THREAD]
+    if a.seed is not None:
+        cfg["study_options"]["seed"] = a.seed
+    cfg["output_dir"] = os.path.abspath(a.output_dir)
     json.dump(cfg, open(a.out, "w"), indent=2)
     print("wrote", a.out)
 
