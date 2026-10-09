@@ -20,10 +20,11 @@ dependencies = [
     "snakemake"
 ]
 
-# JAX CUDA variant: CUDA 12 (group, installed by default) or CUDA 13 (extra); never both, since
-# two JAX CUDA plugins would both register the "cuda" device.
+# One CUDA version for both torch and JAX: CUDA 12 (group, installed by default) or CUDA 13 (extra).
+# torch comes from the matching PyTorch wheel index (see [tool.uv.sources]) and JAX from the matching
+# jax[cudaXX] extra; never both, since two JAX CUDA plugins would both register the "cuda" device.
 [project.optional-dependencies]
-cuda13 = ["jax[cuda13]>=0.7.0"]
+cuda13 = ["torch>=2.8.0", "jax[cuda13]>=0.7.0"]
 
 # Melissa's CMake installs Conduit into the active venv, so it must not be built in uv's isolated
 # (temporary) build environment; its build requirements come from the "build" group instead.
@@ -37,7 +38,7 @@ build = [
   "numpy>=1.21",
   "cmake==3.31.10",
 ]
-cuda12 = ["jax[cuda12]>=0.7.0"]
+cuda12 = ["torch>=2.8.0", "jax[cuda12]>=0.7.0"]
 
 [tool.uv]
 default-groups = ["build", "cuda12"]
@@ -48,6 +49,20 @@ conflicts = [[{group = "cuda12"}, {extra = "cuda13"}]]
 
 [tool.uv.sources]
 melissa = { path = "melissa" }
+torch = [
+  { index = "pytorch-cu128", group = "cuda12" },
+  { index = "pytorch-cu130", extra = "cuda13" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
 
 [tool.uv.config-settings-package]
 melissa = { "cmake.define.INSTALL_CONDUIT" = "ON", "cmake.define.INSTALL_ZMQ" = "ON" }
