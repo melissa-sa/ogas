@@ -33,29 +33,39 @@ On 3 PDEs × 3 architectures (189 runs of 10,000 simulations), at the same simul
 
 ## Installation
 
-You need Linux, [uv](https://docs.astral.sh/uv/getting-started/installation/), C/C++/Fortran compilers, CMake ≥ 3.24,
-Open MPI and ZeroMQ ([Melissa](https://gitlab.inria.fr/melissa/melissa), the online-training framework, is compiled
-during the install), and an NVIDIA GPU with CUDA 12 for training. On Ubuntu:
+You need Linux, [uv](https://docs.astral.sh/uv/getting-started/installation/), C/C++/Fortran compilers, CMake ≥ 3.24 and ≤ 3.35,
+Open MPI and ([Melissa](https://gitlab.inria.fr/melissa/melissa), the online-training framework, is compiled
+during the install), and an NVIDIA GPU with CUDA 12 or 13 for training. On Ubuntu:
 
 ```bash
-sudo apt install build-essential gfortran cmake libopenmpi-dev openmpi-bin libzmq3-dev
+sudo apt install build-essential gfortran cmake libopenmpi-dev openmpi-bin
 ```
+
+> Melissa installs both ZeroMQ and Conduit during its installation phase.
 
 Then:
 
 ```bash
 git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
-uv venv --python 3.11 && source .venv/bin/activate
-uv pip install -r frozen_requirements.txt                     # exact environment of the paper
-uv pip install --no-deps -e . "./melissa[launcher,server,torch]"
-export APEBENCH_ROOT=$PWD                                       # the generated configs refer to it
+uv venv && uv pip install --group build --no-binary mpi4py   # step 1: Melissa's build requirements, needed in the venv
+uv sync                          # step 2: installs everything, including Melissa
+source .venv/bin/activate
+export APEBENCH_ROOT=$PWD        # the generated configs refer to it
+python scripts/check_install.py   # post-install check: torch, jax and conduit.Node come from this venv
 ```
 
+`uv sync` builds Melissa with `INSTALL_CONDUIT=ON` and `INSTALL_ZMQ=ON` (set in `pyproject.toml`). Because Melissa
+installs Conduit into the active environment, it is built outside uv's isolated build environment, so step 1 installs
+its build requirements into the venv first (uv needs them even to read Melissa's metadata). Melissa is rebuilt on every sync.
+
+`torch` and `jax` use CUDA 12 wheels by default. For CUDA 13, run `uv sync --extra cuda13 --no-group cuda12`.
+`frozen_requirements.txt` still holds the exact environment of the paper.
+
 Already cloned without `--recursive`? Run `git submodule update --init`. Melissa is pinned to its
-[`neurips-release`](https://gitlab.inria.fr/melissa/melissa/-/tree/neurips-release) tag.
+[`neurips26-ogas-release`](https://gitlab.inria.fr/melissa/melissa/-/tree/neurips26-ogas-release) tag.
 
 **On Leonardo (CINECA)**, `source leo_melissa_init.sh install` loads the modules and builds the same environment;
-afterwards, `source leo_melissa_init.sh` activates it.
+afterwards, `source leo_melissa_init.sh` activates it. It runs the same `uv` steps as above;
 
 ## Quick start: one experiment
 
