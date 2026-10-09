@@ -58,11 +58,8 @@ python scripts/check_install.py   # post-install check: torch, jax and conduit.N
 installs Conduit into the active environment, it is built outside uv's isolated build environment, so step 1 installs
 its build requirements into the venv first (uv needs them even to read Melissa's metadata). Melissa is rebuilt on every sync.
 
-JAX is installed with CUDA 12 wheels (`jax[cuda12]`), which share the `nvidia-*` libraries that `torch` already pulls.
-For CUDA 13 instead, run `uv sync --extra cuda13 --no-group cuda12` (both variants can't be installed together, and
-`torch` still brings its own CUDA 12 libraries).
-`torch` and `jax` are only pinned to a minimum version, and `frozen_requirements.txt` still holds the exact
-environment of the paper.
+`torch` and `jax` use CUDA 12 wheels by default. For CUDA 13, run `uv sync --extra cuda13 --no-group cuda12`.
+`frozen_requirements.txt` still holds the exact environment of the paper.
 
 Already cloned without `--recursive`? Run `git submodule update --init`. Melissa is pinned to its
 [`neurips26-ogas-release`](https://gitlab.inria.fr/melissa/melissa/-/tree/neurips26-ogas-release) tag.
