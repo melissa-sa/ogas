@@ -48,9 +48,9 @@ def main():
     ap.add_argument("out")
     ap.add_argument("output_dir")
     ap.add_argument("--seed", type=int)
-    ap.add_argument("--n-models", type=int, help="ensemble size (one training rank and GPU per member)")
+    ap.add_argument("--n-models", type=int, help="ensemble size")
     ap.add_argument("--signal", choices=["uncertainty", "ecrps"], help="ensemble signal fed to the breeder")
-    ap.add_argument("--train-ranks", type=int, help="training ranks the members are spread over (default: one per member)")
+    ap.add_argument("--train-ranks", type=int, help="training ranks the members are spread over (default: 1)")
     ap.add_argument("--sampler-gpu", action="store_true", help="give the DDPM sampler its own GPU (job_study.sh)")
     ap.add_argument("--clients", type=int, help="concurrent solvers (default: 8 per member; offline: one per CPU core)")
     ap.add_argument("--wandb-group", help="W&B group (default: the source group, with the signal and _M<m>)")
@@ -69,7 +69,7 @@ def main():
     if a.seed is not None:
         cfg["study_options"]["seed"] = a.seed
     n_members = int(tm.get("n_models", 2 if tm.get("use_ensemble") else 1))
-    ranks = a.train_ranks or n_members
+    ranks = a.train_ranks or 1
     if n_members % ranks:
         raise SystemExit(f"{n_members} members cannot be split over {ranks} training ranks")
     group = dl.get("wandb_group", "")
