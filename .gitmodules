@@ -1,4 +1,3 @@
 [submodule "melissa"]
 	path = melissa
 	url = https://gitlab.inria.fr/melissa/melissa.git
-	branch = neurips-release
