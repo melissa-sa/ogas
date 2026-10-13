@@ -86,8 +86,8 @@ def main():
         "std_output": True, "scheduler": "openmpi", "protocol": "tcp", "fault_tolerance": True,
         "scheduler_server_command": WRAPPER, "scheduler_client_command": WRAPPER,
         "scheduler_server_command_options": ["--server"],
-        "scheduler_arg_server": ["-n", str(ranks + 1)],
-        "scheduler_arg_client": ["-n", "1"],
+        "scheduler_arg_server": ["-n", str(ranks + 1), "--bind-to", "none"],
+        "scheduler_arg_client": ["-n", "1", "--bind-to", "none"],
         "job_limit": a.clients or 8 * n_members,
     })
     dl["external_validation"] = False
@@ -114,7 +114,7 @@ def offline(cfg, a):
         "std_output": True, "scheduler": "openmpi", "protocol": "tcp",
         "scheduler_server_command": WRAPPER, "scheduler_client_command": WRAPPER,
         "scheduler_server_command_options": ["--server"],
-        "scheduler_arg_server": ["-n", "1"], "scheduler_arg_client": ["-n", "1"],
+        "scheduler_arg_server": ["-n", "1", "--bind-to", "none"], "scheduler_arg_client": ["-n", "1", "--bind-to", "none"],
         "job_limit": a.clients or os.cpu_count(),
     })
     srv = cfg.setdefault("server_config", {}).setdefault("preprocessing_commands", [])
