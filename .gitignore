@@ -7,7 +7,7 @@ __pycache__/
 *.so
 *.pdf
 *metrics*
-!apebench_online/validation/external_validation/metrics.py
+!ogas/validation/external_validation/metrics.py
 # Distribution / packaging
 .Python
 build/
@@ -56,7 +56,7 @@ best_metrics*/
 venv/
 ENV/
 env/
-.melissa-apebench-venv/
+.melissa-ogas-venv/
 
 # Snakemake
 logs/

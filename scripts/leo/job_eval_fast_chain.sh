@@ -13,8 +13,8 @@
 #SBATCH --error=std/eval-fast-chain.%j.err
 set -uo pipefail
 if [ -z "${SLURM_JOB_ID:-}" ]; then
-  export APEBENCH_ROOT=${APEBENCH_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
-  exp=${EXP_DIR:-$APEBENCH_ROOT}/experiments
+  export OGAS_ROOT=${OGAS_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
+  exp=${EXP_DIR:-$OGAS_ROOT}/experiments
   runs=$(realpath "${1:-$exp/runs}"); export OUT=$(realpath -m "${2:-$exp/eval}"); shift $(( $# < 2 ? $# : 2 ))
   EVAL_ARGS="--root $runs $*"
   if [[ " $* " != *" --val "* ]]; then
@@ -30,12 +30,12 @@ if [ -z "${SLURM_JOB_ID:-}" ]; then
 fi
 : "${OUT:?}" "${TOTAL:?}" "${EVAL_ARGS:?}"
 unset LD_LIBRARY_PATH PYTHONPATH PKG_CONFIG_PATH
-source $APEBENCH_ROOT/leo_melissa_init.sh load
+source $OGAS_ROOT/leo_melissa_init.sh load
 export LD_LIBRARY_PATH="$MELISSA_ENV/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 unset PYTHONPATH
 export WANDB_MODE=disabled
 PY=$MELISSA_ENV/bin/python
-E=$APEBENCH_ROOT/scripts/analysis
+E=$OGAS_ROOT/scripts/analysis
 ARGS="--output $OUT $EVAL_ARGS --deadline-min 24 --batch 64"
 mkdir -p $OUT/state
 ITER=$(( $(cat $OUT/state/iteration 2>/dev/null || echo 0) + 1 )); echo $ITER > $OUT/state/iteration
@@ -50,8 +50,8 @@ if [ "$ITER" -gt 1 ] && [ "$NOW" -le "$PREV" ]; then
   echo EVALFAST_NO_PROGRESS_STOP; $PY -u $E/aggregate_fast.py --output $OUT; exit 0
 fi
 echo $NOW > $OUT/state/prev_done
-sbatch --parsable --nodes=8 --dependency=afterany:$SLURM_JOB_ID $APEBENCH_ROOT/scripts/leo/job_eval_fast_chain.sh \
-  || sbatch --parsable --nodes=4 --dependency=afterany:$SLURM_JOB_ID $APEBENCH_ROOT/scripts/leo/job_eval_fast_chain.sh \
+sbatch --parsable --nodes=8 --dependency=afterany:$SLURM_JOB_ID $OGAS_ROOT/scripts/leo/job_eval_fast_chain.sh \
+  || sbatch --parsable --nodes=4 --dependency=afterany:$SLURM_JOB_ID $OGAS_ROOT/scripts/leo/job_eval_fast_chain.sh \
   || echo EVALFAST_RESUBMIT_FAILED
 srun --mpi=none --ntasks-per-node=1 --cpus-per-task=32 bash -c "
   for v in \$(env | grep -oE '^(PMIX|PMI|SLURM|OMPI_MCA_orte|OMPI_COMM)[A-Za-z0-9_]*'); do unset \$v; done

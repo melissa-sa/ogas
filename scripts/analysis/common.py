@@ -10,7 +10,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-os.environ.setdefault("APEBENCH_ROOT", str(REPO))
+os.environ.setdefault("OGAS_ROOT", str(REPO))
 
 VAL_ROOT = os.path.join(os.environ.get("LEONARDO_PROJECT_ROOT", "."), "experiments/conditional_models_exp/val_data")
 

@@ -34,7 +34,7 @@ except Exception:  # pragma: no cover - optional styling
 
 from common import blob_indices, load_config  # noqa: E402
 
-from apebench_online.scenarios.physics_ic_utils import layout_from_scenario_config  # noqa: E402
+from ogas.scenarios.physics_ic_utils import layout_from_scenario_config  # noqa: E402
 
 DISPLAY_NAMES = {
     "diffusivity": "viscosity",

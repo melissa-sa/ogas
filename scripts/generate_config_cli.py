@@ -132,7 +132,7 @@ def build_online_json(
         "active_sampling_config": active.config_dict,
         "dl_config": {
             "validation_directory": selected_val_dir,
-            "wandb_project": f"apebench-{scenario.scenario_name}",
+            "wandb_project": f"ogas-{scenario.scenario_name}",
             "valid_rollout": dl.valid_rollout,
             "valid_batch_size": dl.valid_batch_size,
             "valid_nb_time_steps": dl.valid_nb_time_steps,
@@ -220,14 +220,14 @@ def build_online_json(
     if torch_payload:
         updates["dl_config"].update(torch_payload)
         updates["server_filename"] = (
-            "$APEBENCH_ROOT/apebench_online/core/apebench_torch_server.py"
+            "$OGAS_ROOT/ogas/core/ogas_torch_server.py"
         )
-        updates["server_class"] = "APEBenchTorchServer"
+        updates["server_class"] = "OgasTorchServer"
     else:
         updates["server_filename"] = (
-            "$APEBENCH_ROOT/apebench_online/core/apebench_server.py"
+            "$OGAS_ROOT/ogas/core/ogas_server.py"
         )
-        updates["server_class"] = "APEBenchServer"
+        updates["server_class"] = "OgasServer"
 
     return deep_update(conf, updates)
 
@@ -235,7 +235,7 @@ def build_online_json(
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Generate Melissa configuration files for APEBench scenarios"
+        description="Generate Melissa configuration files for OGAS experiments"
     )
     parser.add_argument(
         "--mode",

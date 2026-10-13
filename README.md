@@ -50,7 +50,7 @@ git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
 uv venv && uv pip install --group build --no-binary mpi4py   # step 1: Melissa's build requirements, needed in the venv
 uv sync                          # step 2: installs everything, including Melissa
 source .venv/bin/activate
-export APEBENCH_ROOT=$PWD        # the generated configs refer to it
+export OGAS_ROOT=$PWD            # the generated configs refer to it
 python scripts/check_install.py   # post-install check: torch, jax and conduit.Node come from this venv
 ```
 
@@ -123,7 +123,7 @@ wandb login
 export WANDB_MODE=online            # before melissa-launcher
 ```
 
-They appear in the project `apebench-kuramoto_sivashinsky_2d_low_res`, group
+They appear in the project `ogas-kuramoto_sivashinsky_2d_low_res`, group
 `TorchUNet_phy-ddpm_conf_ratio_proportional_normalized`. On clusters whose compute nodes have no internet (Leonardo),
 keep the offline mode and upload afterwards:
 `wandb sync $(find experiments/runs/ks_ogas_loss_s1 -type d -name 'offline-run-*')`.
@@ -159,7 +159,7 @@ scripts/leo/job_eval_fast_chain.sh                          # evaluate every che
 ## Repository structure
 
 ```
-apebench_online/   solver client (core/solver.py), training servers, models, parameter samplers, PDE scenarios
+ogas/              solver client (core/solver.py), training servers, models, parameter samplers, PDE scenarios
 melissa/           Melissa (submodule): launcher, server, and the OGAS sampler (server/deep_learning/active_sampling)
 scripts/configs/   config generation (generate_config_cli.py is called by Snakemake; make_study_config.py)
 scripts/leo/       Slurm job scripts for Leonardo
@@ -182,7 +182,7 @@ docs/              project page; docs/tools renders its figures
 ## License
 
 MIT, see [LICENSE](LICENSE). Melissa is distributed under its own BSD 3-Clause license; adapted third-party model
-code (AL4PDE, PDEArena, scOT) is in [`apebench_online/vendor/`](apebench_online/vendor) with its license. The PDE
+code (AL4PDE, PDEArena, scOT) is in [`ogas/vendor/`](ogas/vendor) with its license. The PDE
 solvers come from [APEBench](https://github.com/tum-pbs/apebench) and [Exponax](https://github.com/Ceyron/exponax).
 
 ## Acknowledgements

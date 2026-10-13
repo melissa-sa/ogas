@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "apebench-online"
+name = "ogas"
 version = "0.1.0"
 description = "OGAS: online generative active sampling for neural PDE surrogates (Melissa + APEBench)"
 readme = "README.md"
@@ -68,7 +68,7 @@ explicit = true
 melissa = { "cmake.define.INSTALL_CONDUIT" = "ON", "cmake.define.INSTALL_ZMQ" = "ON" }
 
 [tool.setuptools.packages.find]
-include = ["apebench_online*", "scripts*", "tests*"]
+include = ["ogas*", "scripts*", "tests*"]
 
 [tool.black]
 line-length = 100

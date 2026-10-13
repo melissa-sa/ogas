@@ -1,7 +1,7 @@
 {
   "online": {
-    "server_filename": "$APEBENCH_ROOT/apebench_online/core/apebench_server.py",
-    "server_class": "APEBenchServer",
+    "server_filename": "$OGAS_ROOT/ogas/core/ogas_server.py",
+    "server_class": "OgasServer",
     "output_dir": "",
     "study_options": {
       "node_names": [
@@ -47,7 +47,7 @@
       "http_port": 8375
     },
     "client_config": {
-      "executable_command": "$APEBENCH_ROOT/apebench_online/core/solver.py",
+      "executable_command": "$OGAS_ROOT/ogas/core/solver.py",
       "command_default_args": [],
       "preprocessing_commands": []
     },
@@ -70,8 +70,8 @@
     }
   },
   "offline": {
-    "server_filename": "$APEBENCH_ROOT/apebench_online/core/apebench_server.py",
-    "server_class": "APEBenchOfflineServer",
+    "server_filename": "$OGAS_ROOT/ogas/core/ogas_server.py",
+    "server_class": "OgasOfflineServer",
     "output_dir": "",
     "study_options": {
       "node_names": [
@@ -98,7 +98,7 @@
       "job_limit": 112
     },
     "client_config": {
-      "executable_command": "$APEBENCH_ROOT/apebench_online/core/solver.py",
+      "executable_command": "$OGAS_ROOT/ogas/core/solver.py",
       "command_default_args": [
         "--offline"
       ],

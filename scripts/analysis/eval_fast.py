@@ -13,9 +13,9 @@ from common import load_config, run_config_path
 import numpy as np
 import torch
 
-from apebench_online.scenarios.physics_ic_utils import physics_specs_from_registry
-from apebench_online.scenarios.scenarios_utils import MelissaSpecificScenario
-from apebench_online.validation.external_validation.torch_support import init_torch_model
+from ogas.scenarios.physics_ic_utils import physics_specs_from_registry
+from ogas.scenarios.scenarios_utils import MelissaSpecificScenario
+from ogas.validation.external_validation.torch_support import init_torch_model
 
 CLAIM_STALE_S = 45 * 60
 
