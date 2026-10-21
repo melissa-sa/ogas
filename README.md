@@ -175,7 +175,11 @@ docs/              project page; docs/tools renders its figures
   title     = {Learning Where to Simulate: Generative Active Sampling for Online {PDE} Surrogate Training},
   author    = {Cesar, Pierre and Dymchenko, Sofya and Purandare, Abhishek and Raffin, Bruno},
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2026}
+  keywords  = {active learning, online training, surrogate modeling, partial differential equations, generative models},
+  pages     = {1--10},
+  month     = dec,
+  year      = {2026},
+  address   = {Paris, France}
 }
 ```
 
