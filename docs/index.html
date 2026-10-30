@@ -148,6 +148,49 @@
     </div>
   </section>
 
+  <!-- Context -->
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="page-column content">
+        <h2 class="title is-3 has-text-centered">From solvers to online active learning</h2>
+        <h3 class="title is-5">A PDE solver</h3>
+        <p>
+          A classical PDE solver is a function <em>F</em> that produces the state at the next time step from the
+          current one and some parameters &lambda;:
+        </p>
+        <p class="has-text-centered">
+          <em>X</em><sub><em>t</em>+&Delta;<em>t</em></sub> = <em>F</em>(<em>X</em><sub><em>t</em></sub>, &lambda;)
+        </p>
+        <p>
+          Starting from an initial condition <em>X</em><sub>0</sub>, it produces a trajectory
+          <em>X</em><sub>0</sub>, &hellip;, <em>X</em><sub><em>T</em></sub>. A neural surrogate
+          <em>F</em><sub>&theta;</sub> learns to imitate <em>F</em>, orders of magnitude faster.
+        </p>
+        <h3 class="title is-5">Classical surrogate training</h3>
+        <p>
+          The usual practice first builds a dataset: initial conditions and parameters (<em>X</em><sub>0</sub>, &lambda;)
+          are sampled uniformly, and the solver generates the corresponding trajectories. <em>F</em><sub>&theta;</sub> is
+          then trained on this fixed dataset over many epochs. But a uniform draw likely leaves the hard-to-learn
+          trajectories under-represented. Think of a fluid solver parametrized by its viscosity: high-viscosity regimes
+          are smooth and easy to learn, low-viscosity ones can become turbulent.
+        </p>
+        <h3 class="title is-5">Online active learning</h3>
+        <p>
+          The first step is online training. Instead of learning from a fixed dataset, the solvers run concurrently with
+          the training: each new state is streamed to a buffer from which the training draws its batches, and a solver
+          that finishes a trajectory picks a new (<em>X</em><sub>0</sub>, &lambda;) for the next one.
+        </p>
+        <p>
+          Data production can then follow the progress of the training. A training signal, such as the surrogate loss,
+          shows where the training struggles, and this information is used to generate the next
+          (<em>X</em><sub>0</sub>, &lambda;) towards hard-to-learn trajectories. This kind of active learning, where
+          samples are generated rather than selected from a pool of candidates, is called <em>query-synthesis</em>.
+          The difficult question is how to design the sampling policy: this is what OGAS is about.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Where the difficulty comes from -->
   <section class="section hero is-light">
     <div class="container is-max-desktop">
@@ -200,8 +243,17 @@
         <p class="section-lead">
           Each simulation receives a difficulty score during training: the normalized training loss (OGAS-Loss) or the
           disagreement of an ensemble of two surrogates (OGAS-Uncertainty). A conditional DDPM learns from the recent
-          (parameters, score) pairs and generates parameters for high target difficulties. Their share grows to 70 %; the
-          rest stays uniform.
+          (parameters, score) pairs and generates parameters for high target difficulties.
+        </p>
+        <p class="section-lead">
+          Training starts with 100&nbsp;% uniformly sampled parameters; as it progresses, generated ones are mixed in, up
+          to 70&nbsp;%. The remaining 30&nbsp;% of uniform samples keep exploring the space, to find the next hard regions
+          as the current ones get learned and to avoid forgetting the easy ones, while the generator exploits what the
+          training has revealed.
+        </p>
+        <p class="section-lead">
+          The plots below show how the requested parameters evolve during one training run. Starting from well-spread,
+          uniform samples, they progressively concentrate on specific regions, the hard-to-learn ones.
         </p>
         <figure class="ogas-figure is-gif">
           <a href="assets/ogas_sampling_3pde.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_sampling_3pde.gif" width="1665" height="585" loading="lazy"
@@ -243,6 +295,12 @@
           error, which a uniformly drawn validation set weighs towards easy regimes. SBAL, Top-K and Sobol give smaller or
           inconsistent gains.
         </p>
+        <p class="section-lead">
+          On a second validation set drawn from the OGAS generator itself (750 trajectories per PDE, UNet), OGAS-Loss
+          improves every statistic, the mean included: the mean error drops by 1.08&times; to 1.38&times; and the 99th
+          percentile by 1.22&times; to 2.16&times;. Both surrogates make larger errors on this set: the configurations OGAS
+          finds hard are also hard for a uniformly trained surrogate.
+        </p>
         <figure class="ogas-figure">
           <div class="plate">
             <a href="assets/figures/results_ratios.png" target="_blank" rel="noopener" title="Open full size"><img src="assets/figures/results_ratios.png" width="2000" height="919" loading="lazy"
@@ -281,9 +339,11 @@
       <div class="page-column">
         <h2 class="title is-3 has-text-centered">Debiasing the sampler</h2>
         <p class="section-lead">
-          Because of the online closed loop, the DDPM end up learning from simulations it chosed itself, so its training history over-represents the regions it already
-          favored. The role of the classifier is to estimates how much denser the history is than a uniform draw, and the DDPM's training
-          examples are weighted by the inverse ratio so that it mitigates the closed loop and ddpm train under a uniform prior.
+          Because of the online closed loop, the DDPM ends up learning from simulations it chose itself, so its training
+          history over-represents the regions it already favored. A classifier estimates how much denser the history is
+          than a uniform draw. The DDPM's training examples are weighted by the inverse ratio, which mitigates this
+          closed-loop sampling bias: the DDPM (not the surrogate) trains on a corrected distribution leaning toward a
+          uniform prior.
         </p>
         <figure class="ogas-figure is-gif">
           <a href="assets/ogas_debiasing.gif" target="_blank" rel="noopener" title="Open full size"><img src="assets/ogas_debiasing.gif" width="1000" height="420" loading="lazy"
@@ -295,24 +355,21 @@
     </div>
   </section>
 
-  <!-- Cost and limitations -->
+  <!-- Implementation -->
   <section class="section hero is-light">
     <div class="container is-max-desktop">
       <div class="page-column content">
-        <h2 class="title is-3 has-text-centered">Cost and limitations</h2>
+        <h2 class="title is-3 has-text-centered">Implementation</h2>
         <p>
-          OGAS runs asynchronously on its own GPU and works only in parameter space, so its cost does not grow with the
-          field resolution. Sending the training signals adds about 23&nbsp;s to a run (0.2&nbsp;% of its wall time), whereas
-          pool-based methods pause simulation and training to score their candidates.
+          OGAS is built on <a href="https://gitlab.inria.fr/melissa/melissa" target="_blank" rel="noopener">Melissa</a>,
+          a framework for training neural networks online from simulations running on HPC clusters. Melissa launches the
+          solvers, streams their states to the training through an in-memory buffer instead of the disk, and keeps
+          simulation and training running concurrently; OGAS plugs its sampler into this loop, on its own GPU.
         </p>
-        <ul>
-          <li>The mean error is slightly higher than with uniform sampling in several settings, mostly for the smaller
-            UNet and FNO on Kuramoto-Sivashinsky and Gray-Scott.</li>
-          <li>OGAS used one extra GPU; sharing the surrogate's GPU is possible but was not evaluated at a fixed compute
-            budget.</li>
-          <li>2D results use three seeds per setting, and there is no theory yet for online active learning of nonlinear
-            surrogates.</li>
-        </ul>
+        <p>
+          The code of the experiments, with the configurations and scripts to reproduce the paper, is on
+          <a href="https://github.com/melissa-sa/ogas" target="_blank" rel="noopener">GitHub</a>.
+        </p>
       </div>
     </div>
   </section>
@@ -333,10 +390,7 @@
     <div class="container is-max-desktop">
       <div class="page-column content">
         <h2 class="title is-3 has-text-centered">Get the code</h2>
-        <p class="section-lead">
-          OGAS is built on the <a href="https://gitlab.inria.fr/melissa/melissa" target="_blank" rel="noopener">Melissa</a>
-          online-training framework. On Linux with uv, an MPI library and ZeroMQ:
-        </p>
+        <p class="section-lead">On Linux with uv, an MPI library and ZeroMQ:</p>
         <pre class="code-block"><code>git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
 uv venv --python 3.11 && source .venv/bin/activate
 uv pip install -r frozen_requirements.txt
