@@ -197,9 +197,9 @@
       <div class="page-column">
         <h2 class="title is-3 has-text-centered">Where the difficulty comes from</h2>
         <p class="section-lead">
-          A simulation is defined by a physical coefficient and a parametrized initial condition. The coefficient alone
-          changes the dynamics qualitatively, so a uniform draw spends much of the budget where the surrogate is already
-          accurate. Each row shows one PDE at a low, a middle and a high value of its coefficient.
+          Our three benchmarks make this concrete. A simulation is defined by a physical coefficient and a parametrized
+          initial condition, and the coefficient alone changes the dynamics qualitatively. Each row shows one PDE at a
+          low, a middle and a high value of its coefficient.
         </p>
         <div class="pde-row">
           <div class="pde-text">
@@ -241,9 +241,11 @@
       <div class="page-column">
         <h2 class="title is-3 has-text-centered">What OGAS samples</h2>
         <p class="section-lead">
-          Each simulation receives a difficulty score during training: the normalized training loss (OGAS-Loss) or the
-          disagreement of an ensemble of two surrogates (OGAS-Uncertainty). A conditional DDPM learns from the recent
-          (parameters, score) pairs and generates parameters for high target difficulties.
+          OGAS answers this question with a generative model that learns where the training struggles. Each finished
+          simulation receives a difficulty score: the training loss it produced (OGAS-Loss) or the disagreement of two
+          surrogates on it (OGAS-Uncertainty). A small diffusion model (a conditional DDPM) learns from the recent pairs
+          of parameters and scores, and OGAS asks it for parameters with a high target difficulty: these become the next
+          simulations. It runs alongside the training, on its own GPU.
         </p>
         <p class="section-lead">
           Training starts with 100&nbsp;% uniformly sampled parameters; as it progresses, generated ones are mixed in, up
