@@ -36,7 +36,7 @@ case "$_leo_mode" in
         uv venv --python 3.11 "$MELISSA_ENV"
         (cd "$OGAS_ROOT" \
             && uv pip install --python "$MELISSA_ENV/bin/python" --group build --no-binary mpi4py \
-            && uv sync) || return 1 2>/dev/null || exit 1
+            && uv sync --locked) || return 1 2>/dev/null || exit 1
         source "$MELISSA_ENV/bin/activate"
         python "$OGAS_ROOT/scripts/check_install.py" || echo "Post-install check failed." >&2
         ;;
