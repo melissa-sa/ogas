@@ -11,7 +11,7 @@ authors = [{name = "DATAMOVE Team"}]
 license = {text = "MIT"}
 requires-python = ">=3.11"
 dependencies = [
-    "melissa[torch]",
+    "melissa[launcher,torch]",
     "jax>=0.7.0",
     "apebench",
     "wandb",
@@ -33,7 +33,7 @@ build = [
   "scikit-build-core>=0.11",
   "pybind11>=3",
   "mpi4py>=3.1.6",
-  "pip>=23",
+  "pip==26.2",
   "setuptools>=68",
   "numpy>=1.21",
   "cmake==3.31.10",
