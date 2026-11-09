@@ -38,7 +38,7 @@ Open MPI and ([Melissa](https://gitlab.inria.fr/melissa/melissa), the online-tra
 during the install), and an NVIDIA GPU with CUDA 12 or 13 for training. On Ubuntu:
 
 ```bash
-sudo apt install build-essential gfortran cmake libopenmpi-dev openmpi-bin
+sudo apt install build-essential gfortran libopenmpi-dev openmpi-bin
 ```
 
 > Melissa installs both ZeroMQ and Conduit during its installation phase.
@@ -47,10 +47,15 @@ Then:
 
 ```bash
 git clone --recursive https://github.com/melissa-sa/ogas && cd ogas
-uv venv && uv pip install --group build --no-binary mpi4py   # step 1: Melissa's build requirements, needed in the venv
-uv sync                          # step 2: installs everything, including Melissa
+
+uv venv
+# step 1: Melissa's build requirements, needed in the venv
+MPICC=$(which mpicc) uv pip install --group build --no-binary mpi4py
+# step 2: installs everything, including Melissa
+uv sync --locked
+
 source .venv/bin/activate
-export OGAS_ROOT=$PWD            # the generated configs refer to it
+export OGAS_ROOT=$PWD             # the generated configs refer to it
 python scripts/check_install.py   # post-install check: torch, jax and conduit.Node come from this venv
 ```
 
@@ -60,6 +65,9 @@ its build requirements into the venv first (uv needs them even to read Melissa's
 
 `torch` and `jax` use CUDA 12 wheels by default. For CUDA 13, run `uv sync --extra cuda13 --no-group cuda12`.
 `frozen_requirements.txt` still holds the exact environment of the paper.
+
+Post-install script `check_install.py` may throw an error, if run on a host without a GPU driver and unset CUDA paths,
+and thus, can be ignored. 
 
 Already cloned without `--recursive`? Run `git submodule update --init`. Melissa is pinned to its
 [`neurips26-ogas-release`](https://gitlab.inria.fr/melissa/melissa/-/tree/neurips26-ogas-release) tag.
